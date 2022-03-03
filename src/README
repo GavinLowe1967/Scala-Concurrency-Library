@@ -1,0 +1,10 @@
+Test buffered channels
+
+Use buffered channels in Trapezium.
+
+Is it possible to implement SyncChan with less waiting?  Switch on who is
+there first.  Maybe separate locks for sending and receiving. 
+
+Extend channels with timed operations.
+
+Trim linearizability tester? 
