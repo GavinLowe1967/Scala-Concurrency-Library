@@ -2,7 +2,8 @@ package ox.scl.channel
 
 /** A buffered channel with capacity `size`. */
 class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
-  require(size > 0)
+  require(size > 0, 
+    s"BuffChan created with capacity $size: must be strictly positive.")
 
   /** Array holding the data. */
   private val data = new Array[A](size)
@@ -21,9 +22,6 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Condition for signalling to receiver that a value has been deposited. */
   private val dataAvailable = lock.newCondition
-
-  /** Condition for signalling to current receiver that it can continue. */
-  //private val continue = lock.newCondition
 
   /** Condition for signalling to sender that a space is available. */
   private val spaceAvailable = lock.newCondition
@@ -72,4 +70,6 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
     result
   }
 
+  def registerIn(alt: AltT, index: Int) = ???
+  def deregisterIn(alt: AltT, index: Int) = ???
 }

@@ -15,9 +15,13 @@ LOCKDIR = $(DIR)/lock
 
 CHANDIR = $(DIR)/channel
 
-CHANNELS = $(CHANDIR)/SyncChan.class $(CHANDIR)/BuffChan.class
+CHANNELS = $(CHANDIR)/SyncChan.class $(CHANDIR)/BuffChan.class 
 
+$(CHANDIR)/InPort.class: $(CHANDIR)/AltBranch.class
+$(CHANDIR)/Chan.class: $(CHANDIR)/InPort.class $(DIR)/Stopped.class
 $(CHANNELS): $(LOCKDIR)/Lock.class $(CHANDIR)/Chan.class
+# Maybe following needs more
+$(CHANDIR)/Alt.class: $(CHANDIR)/AltBranch.class $(DIR)/Stopped.class $(CHANDIR)/SyncChan.class # probably Chan.class
 
 ##### Linearizability testing
 
@@ -80,7 +84,7 @@ DEBUGDIR = $(DIR)/debug
 
 ##### Complete package
 
-$(DIR)/package.class: $(DIR)/Computation.class $(CHANNELS) $(DEBUGDIR)/Log.class $(LOCKDIR)/Semaphore.class $(TESTING_SOLVERS)
+$(DIR)/package.class: $(DIR)/Computation.class $(CHANNELS) $(DEBUGDIR)/Log.class $(LOCKDIR)/Semaphore.class $(TESTING_SOLVERS) $(CHANDIR)/Alt.class
 
 ##### Recipes
 

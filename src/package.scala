@@ -26,6 +26,22 @@ package object scl{
     catch{ case _: Stopped   => alternative; case t: Throwable => throw t }
   }
 
+  /* Alternation */
+ 
+  implicit class Guarded(guard: => Boolean){
+    def &&[T](port: channel.InPort[T]) =
+      new channel.GuardedInPort[T](() => guard, port)
+    /*
+    def &&[T](port: alternation.channel.OutPort[T]) = 
+      new alternation.channel.GuardedOutPort[T](()=>guard, port)
+    def &&[T](chan: alternation.channel.Chan[T])    = 
+      new alternation.channel.GuardedChan[T](()=>guard, chan) */
+  }
+
+  /** Construct an `alt` from `branches`. */
+  def alt(branches: channel.AltBranch) = 
+    new channel.Alt(branches.unpack.toArray)()
+
   /* Make various classes available without full qualification. */
 
   // Locks

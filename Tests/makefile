@@ -2,7 +2,8 @@ DIR = ../tests
 
 BASIC_TESTSS = $(DIR)/Race2.class $(DIR)/Deadlock.class
 
-TESTS = $(BASIC_TESTS) $(DIR)/SyncChanTest.class $(DIR)/BuffChanTest.class
+TESTS = $(BASIC_TESTS) $(DIR)/SyncChanTest.class $(DIR)/BuffChanTest.class	\
+$(DIR)/AltTest.class
 
 all:   $(TESTS)	 
 

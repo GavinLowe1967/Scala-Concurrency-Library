@@ -19,6 +19,8 @@ class SyncChan[A] extends Chan[A]{
   /** Number of receivers waiting. */
   private var receiversWaiting = 0
 
+  /** An Alt that is potentially waiting to receive from this. */
+  @volatile private var receivingAlt: (AltT,Int) = null
 
   /** Monitor for controlling synchronisations. */
   private val lock = new ox.scl.lock.Lock
@@ -44,6 +46,7 @@ class SyncChan[A] extends Chan[A]{
 
   /** Close the channel for sending: this closes the whole channel. */
   def closeOut() = close()
+// TODO: indicate to alt that this has closed. 
 
   /** Reopen the channel.  Precondition: the channel is closed, and no threads
     * are trying to send or receive. */
@@ -59,21 +62,57 @@ class SyncChan[A] extends Chan[A]{
     slotEmptied.await(!full || isClosed)
                              // wait for previous value to be consumed (1)
     checkOpen
-    value = x; full = true   // deposit my value
-    slotFull.signal()        // signal to receiver at (3)
-    continue.await()         // wait for receiver (2)
-    checkOpen
+    // Try sending to an alt, if possible
+    var done = false
+    if(receivingAlt != null) receivingAlt match{
+      case (alt, index) => if(alt.maybeReceive(x, index)) done = true
+      case null => {} // Just deregistered
+    }
+    if(!done){
+      value = x; full = true   // deposit my value
+      slotFull.signal()        // signal to receiver at (3)
+      continue.await()         // wait for receiver (2)
+      checkOpen
+    }
   }
 
   /** Receive a value from this channel. */
   def ?(u: Unit) : A = lock.mutex{
     slotFull.await(full || isClosed)  // wait for sender (3)
     checkOpen
+    completeRead             // clear slot and signal
+    value
+  }
+
+  /** Complete a read by clearing the slot and signalling. */
+  @inline private def completeRead = {
     full = false            // clear value
     continue.signal()       // notify current sender at (2)
     slotEmptied.signal()    // notify next sender at (1)
-    value
   }
+
+  /** Register that `alt` is trying to receive on this from its branch with
+    * index `index`.. */
+  def registerIn(alt: AltT, index: Int): RegisterInResult[A] = lock.mutex{
+    require(receivingAlt == null)
+    if(isClosed) RegisterInClosed
+    else if(full){
+      completeRead           // clear slot and signal
+      RegisterInSuccess(value)
+    }
+    else{
+      receivingAlt = (alt, index)
+      RegisterInWaiting 
+    }
+  } 
+
+  /** Record that `alt` is no longer trying to receive on this. */
+  def deregisterIn(alt: AltT, index: Int) = {
+    // Note: no locking here; read and write are volatile
+    assert(receivingAlt == (alt,index)); receivingAlt = null 
+  }
+
+
 }
 
 /*

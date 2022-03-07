@@ -8,17 +8,6 @@ class Closed extends ox.scl.Stopped
 
 // ==================================================================
 
-/** The receiving end of a channel. */
-trait InPort[A]{
-  /** Receive on the inport. */
-  def ?(u: Unit): A
-
-  /** Close the channel for receiving. */
-  def closeIn(): Unit
-}
-
-// ==================================================================
-
 /** The sending end of a channel. */
 trait OutPort[A]{
   /** Send `x` on the channel. */
