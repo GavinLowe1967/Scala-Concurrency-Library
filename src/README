@@ -4,7 +4,15 @@ Use buffered channels in Trapezium. -- done
 
 Examples from Interacting Peers. -- done
 
-Alternation
+Sorting practical
+
+Dining Philosophers practical.
+
+Alternation:
+- Extend to buffered channels
+- Extend to sending branches
+- Allow repetitions. 
+- Think about restrictions on usage
 
 Is it possible to implement SyncChan with less waiting?  Switch on who is
 there first.  Maybe separate locks for sending and receiving. 

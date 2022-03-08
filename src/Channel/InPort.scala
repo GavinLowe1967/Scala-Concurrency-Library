@@ -9,7 +9,7 @@ trait InPort[A]{
   def closeIn(): Unit
 
   /** Create a branch of an Alt from this. */
-  def =?=> (body: A => Unit) = new InPortBranch(() => true, this, body)
+  def =?=> (body: A => Unit) = new UnguardedInPortBranch(this, body)
 
   /** Registration from Alt `alt` corresponding to its branch `index`. */
   def registerIn(alt: AltT, index: Int): RegisterInResult[A]
@@ -43,7 +43,19 @@ class GuardedInPort[A](guard: () => Boolean, inPort: InPort[A]){
 // ==================================================================
 
 /** A branch in an alt corresponding to an InPort.  This corresponds to the
-  * syntax `(guard && inPort) =?=> body`. */
+  * syntax `guard && inPort =?=> body`. */
 class InPortBranch[A]( 
   val guard: () => Boolean, val inPort: InPort[A], val body: A => Unit)
-    extends AtomicAltBranch
+    extends AtomicAltBranch{
+  /** The value received; filled in by the alt. */
+  private[channel] var valueReceived: A = _
+}
+
+
+// ==================================================================
+
+/** A branch in an alt corresponding to an InPort with no guard.  This
+  * corresponds to the syntax `inPort =?=> body`. */
+class UnguardedInPortBranch[A](inPort: InPort[A], body: A => Unit) 
+    extends InPortBranch(() => true, inPort, body)
+ 

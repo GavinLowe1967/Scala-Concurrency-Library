@@ -38,7 +38,13 @@ class SyncChan[A] extends Chan[A]{
   /** Close the channel. */
   def close() = lock.mutex{
     isClosed = true; full = false
+    // Signal to waiting threads
     slotEmptied.signalAll(); slotFull.signalAll(); continue.signalAll()
+    // Signal to waiting alt, if any
+    if(receivingAlt != null) receivingAlt match{
+      case (alt, index) => alt.portClosed(index); receivingAlt = null
+      case null => {}  // Just deregistered
+    }
   }
 
   /** Close the channel for receiving: this closes the whole channel. */
@@ -46,7 +52,6 @@ class SyncChan[A] extends Chan[A]{
 
   /** Close the channel for sending: this closes the whole channel. */
   def closeOut() = close()
-// TODO: indicate to alt that this has closed. 
 
   /** Reopen the channel.  Precondition: the channel is closed, and no threads
     * are trying to send or receive. */
@@ -65,7 +70,9 @@ class SyncChan[A] extends Chan[A]{
     // Try sending to an alt, if possible
     var done = false
     if(receivingAlt != null) receivingAlt match{
-      case (alt, index) => if(alt.maybeReceive(x, index)) done = true
+      case (alt, index) => 
+        // See if alt is still willing to receive from this
+        if(alt.maybeReceive(x, index)){ receivingAlt = null; done = true }
       case null => {} // Just deregistered
     }
     if(!done){
@@ -109,10 +116,10 @@ class SyncChan[A] extends Chan[A]{
   /** Record that `alt` is no longer trying to receive on this. */
   def deregisterIn(alt: AltT, index: Int) = {
     // Note: no locking here; read and write are volatile
-    assert(receivingAlt == (alt,index)); receivingAlt = null 
+    assert(receivingAlt == (alt,index) || receivingAlt == null)
+    // Might have receivingAlt = null if this has just closed.
+    receivingAlt = null
   }
-
-
 }
 
 /*

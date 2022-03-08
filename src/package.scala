@@ -1,6 +1,8 @@
 package ox
 
 package object scl{
+  /* Creating and running Computations. */
+
   /** Create a thread that will execute `comp`. */
   def thread(comp: => Unit) = new Thread(null, comp)
 
@@ -19,6 +21,12 @@ package object scl{
     catch{ case _: Stopped   => {}; case t: Throwable => throw t }
   }
 
+  /** Repeatedly perform `body` while `guard` is true. */
+  @inline def repeat(guard: => Boolean)(body: => Unit): Unit = {
+    try{ while(guard)(body) }
+    catch{ case _: Stopped   => {}; case t: Throwable => throw t }
+  }
+
   /** Attempt to perform `body`; if that throws a `Stopped` exception, perform
     * `alternative`. */
   @inline def attempt(body: => Unit)(alternative: => Unit): Unit = {
@@ -26,9 +34,13 @@ package object scl{
     catch{ case _: Stopped   => alternative; case t: Throwable => throw t }
   }
 
-  /* Alternation */
+  // ====================== Alternation ======================
  
+  /** Implicit conversion to allow a guard on a branch of an alt. 
+    * 
+    * Code adapted from Bernard Sufrin's CSO. */ 
   implicit class Guarded(guard: => Boolean){
+    @deprecated("CSO-style bracketing of guard and InPort is unnecessary")
     def &&[T](port: channel.InPort[T]) =
       new channel.GuardedInPort[T](() => guard, port)
     /*
@@ -38,10 +50,23 @@ package object scl{
       new alternation.channel.GuardedChan[T](()=>guard, chan) */
   }
 
-  /** Construct an `alt` from `branches`. */
-  def alt(branches: channel.AltBranch) = 
-    new channel.Alt(branches.unpack.toArray)()
+  /** Implicit conversion to allow a guard on a branch of an alt. */ 
+  implicit class GuardedIP(guard: => Boolean){
+    def &&[A](uipb: channel.UnguardedInPortBranch[A]) = 
+      new channel.InPortBranch(() => guard, uipb.inPort, uipb.body)
+  }
 
+  /** Construct an `alt` from `branches`. */
+  def alt(body: channel.AltBranch) = 
+    new channel.Alt(body.unpack.toArray)()
+
+  def serve(body: channel.AltBranch) = {
+    val branches = body.unpack.toArray
+// FIXME
+    repeat{ new channel.Alt(branches)() }
+  }
+
+  // =======================================================
   /* Make various classes available without full qualification. */
 
   // Locks
@@ -56,7 +81,7 @@ package object scl{
   type ?[A] = channel.InPort[A]
   type ![A] = channel.OutPort[A]
 
-  // Linearizability testing_
+  // Linearizability testing
   import ox.cads.testing.LinearizabilityTester.{WorkerType,JITGraph}
   def LinearizabilityTester[S,C](seqObj: S, concObj: C, p: Int, 
       worker: WorkerType[S,C], tsLog: Boolean = true) =
