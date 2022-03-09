@@ -70,6 +70,6 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
     result
   }
 
-  def registerIn(alt: AltT, index: Int) = ???
-  def deregisterIn(alt: AltT, index: Int) = ???
+  def registerIn(alt: AltT, index: Int, iter: Int) = ???
+  def deregisterIn(alt: AltT, index: Int, iter: Int) = ???
 }

@@ -8,14 +8,12 @@ import scala.util.Random
 object AltTest{
   /** Tagger process. */
   def tagger[T](l: ?[T], r: ?[T], out: ![(Int, T)]) = thread("tagger"){
-    repeat{
-      alt ( 
-        true && Random.nextInt(5) != 0 && l =?=> { x => 
-          /*println(s"received $x on l");*/ out!(0, x) }
-        | Random.nextInt(5) != 0 && r =?=> { x => 
-          /*println(s"received $x on r");*/ out!(1, x) }
-      ) 
-    }
+    serve( 
+      true && Random.nextInt(5) != 0 && l =?=> { x =>
+        /*println(s"received $x on l");*/ out!(0, x) }
+      | Random.nextInt(5) != 0 && r =?=> { x =>
+        /*println(s"received $x on r");*/ out!(1, x) }
+    )
     // println("tagger closed")
     l .closeIn; r.closeIn; out.closeOut
   }

@@ -6,7 +6,9 @@ Examples from Interacting Peers. -- done
 
 Sorting practical
 
-Dining Philosophers practical.
+Dining Philosophers practical: two parts done; need to do version with timeout.
+
+Client-server examples
 
 Alternation:
 - Extend to buffered channels

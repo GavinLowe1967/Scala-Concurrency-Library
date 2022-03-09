@@ -19,8 +19,10 @@ class SyncChan[A] extends Chan[A]{
   /** Number of receivers waiting. */
   private var receiversWaiting = 0
 
-  /** An Alt that is potentially waiting to receive from this. */
-  @volatile private var receivingAlt: (AltT,Int) = null
+  /** An Alt that is potentially waiting to receive from this, combined with the
+    * index number of the branch in that alt, and the iteration number for the
+    * alt. */
+  @volatile private var receivingAlt: (AltT, Int, Int) = null
 
   /** Monitor for controlling synchronisations. */
   private val lock = new ox.scl.lock.Lock
@@ -42,7 +44,7 @@ class SyncChan[A] extends Chan[A]{
     slotEmptied.signalAll(); slotFull.signalAll(); continue.signalAll()
     // Signal to waiting alt, if any
     if(receivingAlt != null) receivingAlt match{
-      case (alt, index) => alt.portClosed(index); receivingAlt = null
+      case (alt, index, iter) => alt.portClosed(index, iter); receivingAlt = null
       case null => {}  // Just deregistered
     }
   }
@@ -70,9 +72,9 @@ class SyncChan[A] extends Chan[A]{
     // Try sending to an alt, if possible
     var done = false
     if(receivingAlt != null) receivingAlt match{
-      case (alt, index) => 
+      case (alt, index, iter) => 
         // See if alt is still willing to receive from this
-        if(alt.maybeReceive(x, index)){ receivingAlt = null; done = true }
+        if(alt.maybeReceive(x, index, iter)){ receivingAlt = null; done = true }
       case null => {} // Just deregistered
     }
     if(!done){
@@ -99,8 +101,9 @@ class SyncChan[A] extends Chan[A]{
   }
 
   /** Register that `alt` is trying to receive on this from its branch with
-    * index `index`.. */
-  def registerIn(alt: AltT, index: Int): RegisterInResult[A] = lock.mutex{
+    * index `index` or iteration `iter`. */
+  def registerIn(alt: AltT, index: Int, iter: Int)
+      : RegisterInResult[A] = lock.mutex{
     require(receivingAlt == null)
     if(isClosed) RegisterInClosed
     else if(full){
@@ -108,15 +111,15 @@ class SyncChan[A] extends Chan[A]{
       RegisterInSuccess(value)
     }
     else{
-      receivingAlt = (alt, index)
+      receivingAlt = (alt, index, iter)
       RegisterInWaiting 
     }
   } 
 
   /** Record that `alt` is no longer trying to receive on this. */
-  def deregisterIn(alt: AltT, index: Int) = {
+  def deregisterIn(alt: AltT, index: Int, iter: Int) = {
     // Note: no locking here; read and write are volatile
-    assert(receivingAlt == (alt,index) || receivingAlt == null)
+    assert(receivingAlt == (alt,index,iter) || receivingAlt == null)
     // Might have receivingAlt = null if this has just closed.
     receivingAlt = null
   }

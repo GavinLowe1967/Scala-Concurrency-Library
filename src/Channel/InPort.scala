@@ -11,11 +11,13 @@ trait InPort[A]{
   /** Create a branch of an Alt from this. */
   def =?=> (body: A => Unit) = new UnguardedInPortBranch(this, body)
 
-  /** Registration from Alt `alt` corresponding to its branch `index`. */
-  def registerIn(alt: AltT, index: Int): RegisterInResult[A]
+  /** Registration from Alt `alt` corresponding to its branch `index` on
+    * iteration `iter`. */
+  def registerIn(alt: AltT, index: Int, iter: Int): RegisterInResult[A]
 
-  /** Deregistration from Alt `alt` corresponding to its branch `index`. */
-  def deregisterIn(alt: AltT, index: Int): Unit
+  /** Deregistration from Alt `alt` corresponding to its branch `index` on
+    * iteration `iter`. */
+  def deregisterIn(alt: AltT, index: Int, iter: Int): Unit
 }
 
 // ==================================================================

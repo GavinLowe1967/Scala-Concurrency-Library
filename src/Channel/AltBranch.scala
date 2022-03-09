@@ -3,11 +3,13 @@ package ox.scl.channel
 /** Trait corresponding to the interface an alt presents to its branches and
   * ports. */
 trait AltT{
-  /** Potentially receive `value` from the InPort with index `i`. */
-  def maybeReceive[A](value: A, i: Int): Boolean
+  /** Potentially receive `value` from the InPort with index `i` on iteration
+    * `iter`. */
+  def maybeReceive[A](value: A, i: Int, iter: Int): Boolean
 
-  /** Receive indication from branch `i` that the port has closed. */
-  def portClosed(i: Int): Unit
+  /** Receive indication from branch `i` that the port has closed on iteration
+    * `iter`. */
+  def portClosed(i: Int, iter: Int): Unit
 }
 
 /** The base class of branches of an Alt. */

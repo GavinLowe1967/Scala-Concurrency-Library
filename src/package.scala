@@ -62,8 +62,8 @@ package object scl{
 
   def serve(body: channel.AltBranch) = {
     val branches = body.unpack.toArray
-// FIXME
-    repeat{ new channel.Alt(branches)() }
+    new channel.Alt(branches).repeat
+    // repeat{ new channel.Alt(branches)() }
   }
 
   // =======================================================
