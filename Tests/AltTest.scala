@@ -19,7 +19,7 @@ object AltTest{
   }
 
   /** Number of values sent on each channel per test. */
-  val N = 50
+  val N = 20
 
   /** Sender that sends [0..N) on c. */
   def sender(c: Chan[Int]) = thread(s"sender $c"){ 
@@ -34,7 +34,8 @@ object AltTest{
     val nexts = new Array[Int](2) // expected next values
     repeat(nexts.exists(_ < N)){
       val (i,x) = out?(); // println(s"receiver received ($i, $x)");
-      assert(x == nexts(i) && x < N); nexts(i) += 1
+      assert(x == nexts(i) && x < N, s"received $x, expected "+nexts(i)); 
+      nexts(i) += 1
     }
     //println("receiver done")
   } 

@@ -21,8 +21,8 @@ class SyncChan[A] extends Chan[A]{
 
   /** An Alt that is potentially waiting to receive from this, combined with the
     * index number of the branch in that alt, and the iteration number for the
-    * alt. */
-  @volatile private var receivingAlt: (AltT, Int, Int) = null
+    * alt.  Note: the iteration number is used only for assertions. */
+  private var receivingAlt: (AltT, Int, Int) = null
 
   /** Monitor for controlling synchronisations. */
   private val lock = new ox.scl.lock.Lock
@@ -43,9 +43,9 @@ class SyncChan[A] extends Chan[A]{
     // Signal to waiting threads
     slotEmptied.signalAll(); slotFull.signalAll(); continue.signalAll()
     // Signal to waiting alt, if any
-    if(receivingAlt != null) receivingAlt match{
-      case (alt, index, iter) => alt.portClosed(index, iter); receivingAlt = null
-      case null => {}  // Just deregistered
+    if(receivingAlt != null){
+      val (alt, index, iter) = receivingAlt
+      alt.portClosed(index, iter); receivingAlt = null
     }
   }
 
@@ -71,11 +71,10 @@ class SyncChan[A] extends Chan[A]{
     checkOpen
     // Try sending to an alt, if possible
     var done = false
-    if(receivingAlt != null) receivingAlt match{
-      case (alt, index, iter) => 
-        // See if alt is still willing to receive from this
-        if(alt.maybeReceive(x, index, iter)){ receivingAlt = null; done = true }
-      case null => {} // Just deregistered
+    if(receivingAlt != null){
+      val (alt, index, iter) = receivingAlt
+      // See if alt is still willing to receive from this
+      if(alt.maybeReceive(x, index, iter)){ receivingAlt = null; done = true }
     }
     if(!done){
       value = x; full = true   // deposit my value
@@ -102,7 +101,7 @@ class SyncChan[A] extends Chan[A]{
 
   /** Register that `alt` is trying to receive on this from its branch with
     * index `index` or iteration `iter`. */
-  def registerIn(alt: AltT, index: Int, iter: Int)
+  private [channel] def registerIn(alt: AltT, index: Int, iter: Int)
       : RegisterInResult[A] = lock.mutex{
     require(receivingAlt == null)
     if(isClosed) RegisterInClosed
@@ -117,9 +116,9 @@ class SyncChan[A] extends Chan[A]{
   } 
 
   /** Record that `alt` is no longer trying to receive on this. */
-  def deregisterIn(alt: AltT, index: Int, iter: Int) = {
-    // Note: no locking here; read and write are volatile
-    assert(receivingAlt == (alt,index,iter) || receivingAlt == null)
+  private [channel] 
+  def deregisterIn(alt: AltT, index: Int, iter: Int) = lock.mutex{
+    assert(isClosed || receivingAlt == (alt,index,iter))
     // Might have receivingAlt = null if this has just closed.
     receivingAlt = null
   }

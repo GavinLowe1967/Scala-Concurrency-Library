@@ -13,11 +13,12 @@ trait InPort[A]{
 
   /** Registration from Alt `alt` corresponding to its branch `index` on
     * iteration `iter`. */
+  private [channel] 
   def registerIn(alt: AltT, index: Int, iter: Int): RegisterInResult[A]
 
   /** Deregistration from Alt `alt` corresponding to its branch `index` on
     * iteration `iter`. */
-  def deregisterIn(alt: AltT, index: Int, iter: Int): Unit
+  private [channel] def deregisterIn(alt: AltT, index: Int, iter: Int): Unit
 }
 
 // ==================================================================

@@ -10,11 +10,29 @@ Dining Philosophers practical: two parts done; need to do version with timeout.
 
 Client-server examples
 
+-----------------
+
 Alternation:
 - Extend to buffered channels
 - Extend to sending branches
 - Allow repetitions. 
 - Think about restrictions on usage
+
+Make all calls from alt to port outside the locking of the Alt:
+- registerIn
+- deregisterIn
+
+I think deregister should be done with lock in SyncChan.  That ensures there
+are no pending callbacks at this point: alt main thread does not hold lock
+here.  Then callbacks should not get calls from the previous iteration.
+
+---------------
+
+
+Calls to maybeReceive, portClosed use lock and block while registering except
+for calls concerning earlier iteration.  Main thread notifies them.  Main
+thread obtains lock (a) to set registering = true; (b) to set registering =
+false and notifyAll (publishes enabled, etc.), and then to wait for signal. 
 
 Is it possible to implement SyncChan with less waiting?  Switch on who is
 there first.  Maybe separate locks for sending and receiving. 
