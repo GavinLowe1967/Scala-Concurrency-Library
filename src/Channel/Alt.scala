@@ -23,7 +23,9 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
    * 5. Completion: The relevant code for the branch is executed.
    * 
    * Code that involves calling a function in a port is executed *outside* a
-   * synchronized block, to avoid deadlocks.  */
+   * synchronized block, to avoid deadlocks.  However, it is executed using
+   * the lock of the port: this implies that after deregistration of a port,
+   * there can be no subsequent call-back from that port.  */
 
   private val size = branches.length
 
@@ -99,9 +101,9 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     assert(iter == this.iter)
     while(registering) wait() // Wait for registration to finish
     assert(iter == this.iter && numEnabled > 0 && enabled(i))
-    if(done) false
+    if(done){ enabled(i) = false; false }
     else{
-      assert(enabled(i))
+      assert(enabled(i)); enabled(i) = false
       branches(i) match{
         case ipb: InPortBranch[A @unchecked] =>
           ipb.valueReceived = value; toRun = i // Store value in the branch

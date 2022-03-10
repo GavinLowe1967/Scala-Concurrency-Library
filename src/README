@@ -15,16 +15,8 @@ Client-server examples
 Alternation:
 - Extend to buffered channels
 - Extend to sending branches
-- Allow repetitions. 
 - Think about restrictions on usage
-
-Make all calls from alt to port outside the locking of the Alt:
-- registerIn
-- deregisterIn
-
-I think deregister should be done with lock in SyncChan.  That ensures there
-are no pending callbacks at this point: alt main thread does not hold lock
-here.  Then callbacks should not get calls from the previous iteration.
+- When repeating, start registering from where the previous round finished.
 
 ---------------
 

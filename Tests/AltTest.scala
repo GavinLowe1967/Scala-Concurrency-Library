@@ -25,7 +25,7 @@ object AltTest{
   def sender(c: Chan[Int]) = thread(s"sender $c"){ 
     var i = 0
     repeat(i < N){ Thread.sleep(Random.nextInt(2)); c!i; i += 1 }
-    //println(s"sender $c done")
+    // println(s"sender $c done")
     Thread.sleep(Random.nextInt(2))
     c.closeIn
   }
@@ -40,9 +40,12 @@ object AltTest{
     //println("receiver done")
   } 
 
+  // Should the test use buffered channels?
+  var buffChan = false
+
   /** Run a single test. */
   def doTest = {
-    val l,r = new SyncChan[Int]
+    val l,r = if(buffChan) new BuffChan[Int](2) else new SyncChan[Int]
     val out = new SyncChan[(Int,Int)]
     val t = tagger(l,r,out)
     val system = t || sender(l) || sender(r) || receiver(out)
@@ -51,6 +54,12 @@ object AltTest{
 
   def main(args: Array[String]) = {
     var reps = 1000
+    var i = 0
+    while(i < args.length) args(i) match{
+      case "--reps" => reps = args(i+1).toInt; i += 1
+      case "--buffChan" => buffChan = true; i += 1
+    }
+
     for(i <- 0 until reps){ doTest; if(i%10 == 0) print(".") }
     println
   }

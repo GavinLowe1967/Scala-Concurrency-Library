@@ -11,21 +11,17 @@ class SyncChan[A] extends Chan[A]{
   private var full = false
 
   /** Is the channel closed. */
-  private var isClosed = false
+  //private var isClosed = false
 
-  /** Number of senders waiting for a later synchronisation. */
-  private var newSendersWaiting = 0
-
-  /** Number of receivers waiting. */
-  private var receiversWaiting = 0
+  @inline protected def canReceive = full
 
   /** An Alt that is potentially waiting to receive from this, combined with the
     * index number of the branch in that alt, and the iteration number for the
     * alt.  Note: the iteration number is used only for assertions. */
-  private var receivingAlt: (AltT, Int, Int) = null
+  //private var receivingAlt: (AltT, Int, Int) = null
 
   /** Monitor for controlling synchronisations. */
-  private val lock = new ox.scl.lock.Lock
+  //private val lock = new ox.scl.lock.Lock
 
   /** Condition for signalling to receiver that a value has been deposited. */
   private val slotFull = lock.newCondition
@@ -70,13 +66,15 @@ class SyncChan[A] extends Chan[A]{
                              // wait for previous value to be consumed (1)
     checkOpen
     // Try sending to an alt, if possible
-    var done = false
-    if(receivingAlt != null){
-      val (alt, index, iter) = receivingAlt
-      // See if alt is still willing to receive from this
-      if(alt.maybeReceive(x, index, iter)){ receivingAlt = null; done = true }
-    }
-    if(!done){
+    // var done = false
+    // if(receivingAlt != null){
+    //   val (alt, index, iter) = receivingAlt
+    //   // See if alt is still willing to receive from this
+    //   if(alt.maybeReceive(x, index, iter)) done = true 
+    //   // Either way, it won't be willing to receive subsequently
+    //   receivingAlt = null
+    // }
+    if(!tryAltCallBack(x)){
       value = x; full = true   // deposit my value
       slotFull.signal()        // signal to receiver at (3)
       continue.await()         // wait for receiver (2)
@@ -88,40 +86,42 @@ class SyncChan[A] extends Chan[A]{
   def ?(u: Unit) : A = lock.mutex{
     slotFull.await(full || isClosed)  // wait for sender (3)
     checkOpen
-    completeRead             // clear slot and signal
-    value
+    completeReceive             // clear slot and signal
+    //value
   }
 
-  /** Complete a read by clearing the slot and signalling. */
-  @inline private def completeRead = {
+  /** Complete a receive by clearing the slot and signalling. */
+  @inline protected def completeReceive(): A = {
     full = false            // clear value
     continue.signal()       // notify current sender at (2)
     slotEmptied.signal()    // notify next sender at (1)
+    value
   }
 
   /** Register that `alt` is trying to receive on this from its branch with
-    * index `index` or iteration `iter`. */
-  private [channel] def registerIn(alt: AltT, index: Int, iter: Int)
-      : RegisterInResult[A] = lock.mutex{
-    require(receivingAlt == null)
-    if(isClosed) RegisterInClosed
-    else if(full){
-      completeRead           // clear slot and signal
-      RegisterInSuccess(value)
-    }
-    else{
-      receivingAlt = (alt, index, iter)
-      RegisterInWaiting 
-    }
-  } 
+    * index `index` on iteration `iter`. */
+  // private [channel] def registerIn(alt: AltT, index: Int, iter: Int)
+  //     : RegisterInResult[A] = lock.mutex{
+  //   require(receivingAlt == null)
+  //   if(isClosed) RegisterInClosed
+  //   else if(full){
+  //     val result = completeReceive           // clear slot and signal
+  //     RegisterInSuccess(result)
+  //   }
+  //   else{
+  //     receivingAlt = (alt, index, iter)
+  //     RegisterInWaiting 
+  //   }
+  // } 
 
   /** Record that `alt` is no longer trying to receive on this. */
-  private [channel] 
-  def deregisterIn(alt: AltT, index: Int, iter: Int) = lock.mutex{
-    assert(isClosed || receivingAlt == (alt,index,iter))
-    // Might have receivingAlt = null if this has just closed.
-    receivingAlt = null
-  }
+  // private [channel] 
+  // def deregisterIn(alt: AltT, index: Int, iter: Int) = lock.mutex{
+  //   assert(receivingAlt == (alt,index,iter) || receivingAlt == null)
+  //   // Might have receivingAlt = null if this has just closed or this made a
+  //   // previous call of maybeReceive on alt.
+  //   receivingAlt = null
+  // }
 }
 
 /*

@@ -11,14 +11,67 @@ trait InPort[A]{
   /** Create a branch of an Alt from this. */
   def =?=> (body: A => Unit) = new UnguardedInPortBranch(this, body)
 
+  /** Complete a receive.  Pre: the port is not closed and there is a value
+    * available. */
+  protected def completeReceive(): A
+
+  /** Is a receive possible in the current state? */
+  protected def canReceive: Boolean
+
+  /** Is the channel closed? */
+  protected var isClosed = false
+
+  /** Monitor for controlling synchronisations. */
+  protected val lock = new ox.scl.lock.Lock
+
+  /* Code related to registering and deregistering of alts.  These make various
+   * assumptions concerning the implementation of the subclasses, namely that
+   * they use lock, isClosed, canReceive and completeReceive as expected. */
+
+  /** An Alt that is potentially waiting to receive from this, combined with the
+    * index number of the branch in that alt, and the iteration number for the
+    * alt.  Note: the iteration number is used only for assertions. */
+  protected var receivingAlt: (AltT, Int, Int) = null
+
   /** Registration from Alt `alt` corresponding to its branch `index` on
     * iteration `iter`. */
   private [channel] 
-  def registerIn(alt: AltT, index: Int, iter: Int): RegisterInResult[A]
+  def registerIn(alt: AltT, index: Int, iter: Int)
+      : RegisterInResult[A] = lock.mutex{
+    require(receivingAlt == null)
+    if(isClosed) RegisterInClosed
+    else if(canReceive){
+      val result = completeReceive           // clear slot and signal
+      RegisterInSuccess(result)
+    }
+    else{
+      receivingAlt = (alt, index, iter)
+      RegisterInWaiting 
+    }
+  } 
 
   /** Deregistration from Alt `alt` corresponding to its branch `index` on
     * iteration `iter`. */
-  private [channel] def deregisterIn(alt: AltT, index: Int, iter: Int): Unit
+  private [channel] 
+  def deregisterIn(alt: AltT, index: Int, iter: Int) = lock.mutex{
+    assert(receivingAlt == (alt,index,iter) || receivingAlt == null)
+    // Might have receivingAlt = null if this has just closed or if this made
+    // a previous call of maybeReceive on alt.
+    receivingAlt = null
+  }
+
+  /** Try to have current registered alt (if any) accept x. */
+  @inline protected def tryAltCallBack(x: A) = {
+    if(receivingAlt != null){
+      assert(!canReceive)
+      val (alt, index, iter) = receivingAlt; receivingAlt = null
+      // See if alt is still willing to receive from this
+      alt.maybeReceive(x, index, iter)
+      // Either way, it won't be willing to receive subsequently, so we clear
+      // receivingAlt above
+    }
+    else false
+  }
 }
 
 // ==================================================================
