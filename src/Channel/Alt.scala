@@ -50,12 +50,16 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
   private var iter = 0
   // Note: iter is used only for assertions, so could be removed.
 
+  /** The index to register first on the next iteration. */
+  private var registerFirst = 0
+
   /** Run this alt once. */
   def apply(): Unit = { 
     require(numEnabled == 0 && enabled.forall(_ == false) && !done)
-    var i = 0; synchronized{ registering = true }
+    var offset = 0; synchronized{ registering = true }
     // Register with each branch
-    while(i < size && !done){
+    while(offset < size && !done){
+      val i = (registerFirst+offset)%size
       branches(i) match{
         case ipb: InPortBranch[_] => 
           if(ipb.guard()){
@@ -81,7 +85,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
             }
           }
       } // end of match
-      i += 1
+      offset += 1
     } // end of while
 
     synchronized{
@@ -99,7 +103,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     // Either a ready branch was identified during registration, or one called
     // maybeReceive.  Deregister all other branches.  Do this without locking,
     // to avoid blocking call-backs.
-    i = 0
+    var i = 0
     while(i < size){
       if(i != toRun && enabled(i)) branches(i) match{
         case ipb: InPortBranch[_] => ipb.inPort.deregisterIn(this, i, iter)
@@ -113,6 +117,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
       case ipb: InPortBranch[_] => ipb.body(ipb.valueReceived)
       case opb: OutPortBranch[_] => opb.cont()
     }
+    registerFirst = toRun+1 // First branch to register next time
   }
 
   // ================================= Call-backs from ports
