@@ -69,57 +69,73 @@ class SyncChan[A] extends Chan[A]{
       slotEmptied.signal        // signal to another sender at (1)
     else{
       value = x; full = true    // deposit my value
-      if(receiversWaiting > 0){
-        slotFull.signal()        // signal to receiver at (3)
-        receiversWaiting -= 1
-      }
-// IMPROVE: following only if receiversWaiting = 0
-      continue.await()         // wait for receiver (2)
-      checkOpen
+      completeSend
     }
   }
 
-  /** Try to send the result of `x`, from an alt.  Return true if successful. */
-  protected def trySend(x: () => A): Boolean = 
-    // IMPROVE alt-to-alt communication ???
-    if(receiversWaiting > 0){ 
-      value = x(); full = true   // deposit my value
-      // println(s"can send $value; receiversWaiting = $receiversWaiting"); 
+  /** Complete the send by maybe signalling to a waiting receiver, and then
+    * waiting for a signal back. */
+  @inline private def completeSend = {
+    if(receiversWaiting > 0){
       slotFull.signal()        // signal to receiver at (3)
       receiversWaiting -= 1
-      true
+      // println(s"Signal: receiversWaiting = $receiversWaiting")
     }
-    else false
+    // Note: following is necessary even if receiversWaiting > 0; otherwise
+    // this value might be taken by a new thread that starts after this
+    // finishes (or after the alt has done something else).
+    continue.await()         // wait for receiver (2)
+    checkOpen
+  }
+
+  /** Try to send the result of `x`, from an alt.  Return true if successful.
+    * Called by OutPort.registerOut.  Pre: thread holds lock. */
+  protected def trySend(x: () => A): Boolean = 
+    // IMPROVE alt-to-alt communication ???  I think not.
+    if(receiversWaiting == 0) false
+    else{
+      slotEmptied.await(!full || isClosed) // Wait for slot to be emptied (1')
+      checkOpen // If closed, exception gets caught in OutPort.registerOut
+      if(receiversWaiting == 0) false
+      else{
+        assert(!full && receiversWaiting > 0)
+        value = x(); full = true   // deposit my value
+        // println(s"can send $value; receiversWaiting = $receiversWaiting"); 
+        completeSend
+        true
+      }
+    }
 
   // ================================= Receiving
 
   /** Receive a value from this channel. */
   def ?(u: Unit): A = lock.mutex{
     checkOpen
-    tryAltSend match{
-      case Some(x:A @unchecked) => x
-      case None => waitToReceive
-    }
-  }
-
-  /** Wait to receive a value in this channel.  Pre: the channel is open and
-    * there is no sending alt waiting.*/
-  private def waitToReceive: A = {
-    if(!full){
+    // Try to receive from an alt first
+    var result = tryAltSend
+    while(result.isEmpty && !full){
+      // Have to wait
       receiversWaiting += 1
-      //println(s"waitToReceive; receiversWaiting = $receiversWaiting")
-      slotFull.await(full || isClosed)  // wait for sender (3)
-      // println(s"waiting done; receiversWaiting = $receiversWaiting")
+      // println(s"waitToReceive; receiversWaiting = $receiversWaiting")
+      slotFull.await()
       checkOpen
+      // println(s"waiting done; receiversWaiting = $receiversWaiting")
+      // If some other thread took the value, try an alt instead.
+      if(!full) result = tryAltSend
     }
-    completeReceive             // clear slot, signal and return result
+    result match{
+      case Some(x) => /* println("second-attempt tryAltSend"); */  x
+      case None => 
+        assert(full) // println(s"Waiting again")
+        completeReceive             // clear slot, signal and return result
+    }
   }
 
   /** Complete a receive by clearing the slot and signalling. */
   @inline protected def completeReceive(): A = {
     full = false            // clear value
-    continue.signal()       // notify current sender at (2)
-    slotEmptied.signal()    // notify next sender at (1)
+    continue.signal()       // notify current sender at (2) or (2')
+    slotEmptied.signal()    // notify next sender at (1) or (1')
     value
   }
 

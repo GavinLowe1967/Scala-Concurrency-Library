@@ -45,6 +45,6 @@ object Computation{
 class Thread(name: String, comp: => Unit) 
     extends Computation(List( (name, _ => comp) )){
 
-  override def fork = mkThread((name, _ => comp)).start
+  // override def fork = mkThread((name, _ => comp)).start
 
 }

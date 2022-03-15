@@ -73,10 +73,10 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
             opb.outPort.registerOut(this, i, iter, opb.value) match{
               case RegisterOutClosed => enabled(i) = false
               case RegisterOutSuccess => 
-                // println("Alt: success on registration"); 
+                //println("Alt: success on registration $iter"); 
                 toRun = i; done = true
               case RegisterOutWaiting => 
-                // println("Alt: unsuccessful registration"); 
+                //println("Alt: unsuccessful registration $iter"); 
                 enabled(i) = true; numEnabled += 1
             }
           }
@@ -89,6 +89,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
 
       if(!done){
         // Wait for something to happen
+        // println(s"Alt waiting $iter")
         while(!done && numEnabled > 0) wait() // wait for something to happen (1)
         if(numEnabled == 0) throw new AltAbort
         done = true
@@ -116,7 +117,8 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
 
   // ================================= Call-backs from ports
 
-  /** Potentially receive value from the InPort of branch `index`. */
+  /** Try to get alt to receive `value` from the InPort of branch `index`.  This
+    * corresponds to the current thread sending `value`. */
   private[channel] 
   def maybeReceive[A](value: A, index: Int, iter: Int): Boolean = synchronized{
     // println(s"maybeReceive($index, $iter): ${!done}")
@@ -135,7 +137,8 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     }
   }
 
-  /** Potentially send on the OutPort of branch `index`. */
+  /** Try to get alt to send on the OutPort of branch `index`.  This corresponds
+    * to the current thread receiving. */
   private[channel] 
   def maybeSend[A](index: Int, iter: Int): Option[A] = synchronized{
     // println(s"maybeSend($index, $iter)")
@@ -148,7 +151,9 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
       // println("send in maybeSend")
       branches(index) match{
         case opb: OutPortBranch[A @unchecked] => 
-          toRun = index; done = true; notify(); Some(opb.value())
+          toRun = index; done = true; notify(); val result = opb.value()
+          // println(s"maybeSend($index, $iter) gives $result")
+          Some(result)
           // Note it's important to evaluate opb.value here, before the alt
           // executed the continuation or goes on to the next iteration, which
           // might change the state.

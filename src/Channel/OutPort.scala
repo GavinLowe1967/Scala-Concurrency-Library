@@ -47,9 +47,13 @@ trait OutPort[A]{
     // println(s"registerOut($alt, $index, $iter)")
     require(canRegisterOut) // In channel implementation
     if(isClosedOut) RegisterOutClosed
-    else if(trySend(value)) RegisterOutSuccess 
-    else{ sendingAlt = (alt, index, iter, value); RegisterOutWaiting }
-  } 
+    else try{
+      // Note: the channel might be closed while this thread is waiting in
+      // trySend; translate the exception into a RegisterOutClosed
+      if(trySend(value)) RegisterOutSuccess
+      else{ sendingAlt = (alt, index, iter, value); RegisterOutWaiting }
+    } catch{ case e: Closed => RegisterOutClosed }
+  }
 
   /** Deregistration from Alt `alt` corresponding to its branch `index` on
     * iteration `iter`. */
@@ -62,7 +66,8 @@ trait OutPort[A]{
     sendingAlt = null
   }
 
-  /** Try to have current alt (if any) send a value. */
+  /** Try to have current alt (if any) send a value.  This corresponds to the
+    * current thread receiving. */
   @inline protected def tryAltSend: Option[A] = {
     if(sendingAlt != null){
       val (alt, index, iter, value) = sendingAlt; sendingAlt = null

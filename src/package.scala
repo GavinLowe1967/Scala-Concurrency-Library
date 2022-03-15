@@ -12,6 +12,10 @@ package object scl{
   /** Run the computation `comp`. */
   def run(comp: Computation) = comp.run
 
+
+  /** Fork off the computation `comp`. */
+  def fork(comp: Computation) = comp.fork
+
   /** Create a parallel computation of the `Computation`s `comps`. */
   def || (comps: Seq[Computation]): Computation = Computation.||(comps)
 
