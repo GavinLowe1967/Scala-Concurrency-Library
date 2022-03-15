@@ -5,12 +5,17 @@ package ox.scl.channel
 trait AltT{
   /** Potentially receive `value` from the InPort with index `i` on iteration
     * `iter`. */
-  def maybeReceive[A](value: A, i: Int, iter: Int): Boolean
+  private[channel] def maybeReceive[A](value: A, i: Int, iter: Int): Boolean
+
+  /** Potentially send on the OutPort of branch `index` on iteration `iter`. */
+  private[channel] def maybeSend[A](index: Int, iter: Int): Option[A]
 
   /** Receive indication from branch `i` that the port has closed on iteration
     * `iter`. */
-  def portClosed(i: Int, iter: Int): Unit
+  private[channel] def portClosed(i: Int, iter: Int): Unit
 }
+
+// ==================================================================
 
 /** The base class of branches of an Alt. */
 trait AltBranch{
@@ -18,20 +23,20 @@ trait AltBranch{
   def | (other: AltBranch) = new InfixAltBranch(this, other)
 
   /** Unpack this into its atomic branches. */
-  def unpack: List[AtomicAltBranch]
+  private[scl] def unpack: List[AtomicAltBranch]
 }
 
 // ==================================================================
 
 /** An atomic AltBranch, i.e. offering no choice. */
 trait AtomicAltBranch extends AltBranch{
-  def unpack = List(this)
+  private[scl] def unpack = List(this)
 }
 
 // ==================================================================
 
 /** The combination of two AltBranches. */
 class InfixAltBranch(left: AltBranch, right: AltBranch) extends AltBranch{
-  def unpack = left.unpack ++ right.unpack
+  private[scl] def unpack = left.unpack ++ right.unpack
 
 }

@@ -14,18 +14,10 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   /** Number of pieces of data currently held.  Inv: 0 <= length <= size. */
   private var length = 0
 
-  @inline protected def canReceive = length > 0
-
   /* The contents of the buffer is data[first .. first+length) (indices
    * interpreted mod size. */
 
-  /** An Alt that is potentially waiting to receive from this, combined with the
-    * index number of the branch in that alt, and the iteration number for the
-    * alt.  Note: the iteration number is used only for assertions. */
-  //private var receivingAlt: (AltT, Int, Int) = null
-
-  /** Monitor for controlling synchronisations. */
-  //private val lock = new ox.scl.lock.Lock
+  protected val lock = new ox.scl.lock.Lock
 
   /** Condition for signalling to receiver that a value has been deposited. */
   private val dataAvailable = lock.newCondition
@@ -33,99 +25,104 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   /** Condition for signalling to sender that a space is available. */
   private val spaceAvailable = lock.newCondition
 
-  /** Is the channel closed. */
-  //private var isClosed = false
+  // ================================= Closing
 
-  private var isClosedOut = false
-
-  /** Close the channel for sending. */
-  def closeOut(): Unit = lock.mutex{
-    isClosedOut = true
-    if(length == 0) close()
-    else spaceAvailable.signalAll()
-  }
-
-  /** Close the channel for receiving.  This completely closes the channel. */
-  def closeIn(): Unit = close()
+  protected var isClosedOut = false
 
   /** Close the channel. */
   def close() = lock.mutex{
     isClosed = true; isClosedOut = true
     dataAvailable.signalAll(); spaceAvailable.signalAll()
     // Signal to waiting alt, if any
-    if(receivingAlt != null){
-      val (alt, index, iter) = receivingAlt
-      alt.portClosed(index, iter); receivingAlt = null
+    informAltInPortClosed() // in InPort
+    informAltOutPortClosed() // in OutPort
+  }
+
+  /** Close the channel for receiving.  This completely closes the channel. */
+  def closeIn(): Unit = close()
+
+  /** Close the channel for sending. */
+  def closeOut(): Unit = lock.mutex{
+    isClosedOut = true
+    if(length == 0) close()
+    else{
+      spaceAvailable.signalAll()
+      informAltOutPortClosed() // in OutPort
     }
   }
 
   /** Reopen the channel. */
   def reopen() = lock.mutex{
     require(isClosed); isClosed = false; isClosedOut = false
-    length = 0; first = 0
+    length = 0; first = 0; sendingAlt = null; receivingAlt = null
   }
+
+  /** Check the channel is open, throwing a Closed exception if not. */
+  @inline private def checkOpen = if(isClosed) throw new Closed
+
+  // ================================= Sending
+
+  /** Is a receive possible in the current state? */
+  @inline protected def canReceive = length > 0
 
   /** Send `x`. */
   def !(x: A) = lock.mutex{
-    spaceAvailable.await(length < size || isClosedOut)
+    spaceAvailable.await(length < size || isClosedOut) // wait for space (1)
     if(isClosedOut) throw new Closed
-    // var done = false
-    // if(receivingAlt != null){
-    //   assert(length == 0, length)
-    //   val (alt, index, iter) = receivingAlt
-    //   // See if alt is still willing to receive from this
-    //   if(alt.maybeReceive(x, index, iter)) done = true 
-    //   // Either way, it won't be willing to receive subsequently
-    //   receivingAlt = null
-    // }
-    if(!tryAltCallBack(x)){
-      data((first+length)%size) = x; length += 1
-      dataAvailable.signal()
-    }
+    if(receivingAlt != null) assert(length == 0)
+    // Try passing to alt first (in InPort)
+    if(!tryAltReceive(x)) storeValue(x)
+    else spaceAvailable.signal                  // signal to next sender at (1)
   }
+
+  /** Store x, and signal to a receiver.  Pre: not closed for sending and
+    * length < size. */
+  @inline private def storeValue(x: A) = {
+    data((first+length)%size) = x; length += 1
+    dataAvailable.signal()                      // signal to receiver at (2)
+  }
+
+  /** Try to send the result of `x`, from an alt.  Return true if successful. */
+  protected def trySend(x: () => A): Boolean = {
+    // println("trySend")
+    if(length < size){ storeValue(x()); true }
+    else false
+  }
+
+  // ================================= Receiving
 
   /** Receive a value from this channel. */
   def ?(u: Unit): A = lock.mutex{
-    dataAvailable.await(length > 0 || isClosed)
-    if(isClosed) throw new Closed
-    completeReceive
-    // val result = data(first); first = (first+1)%size; length -= 1
-    // spaceAvailable.signal()
-    // if(isClosedOut && length == 0) close()
-    // result
+    checkOpen
+    if(length == 0) tryAltSend match{
+      case Some(x:A @unchecked) => x
+      case None => waitToReceive
+    }
+    else completeReceive // waitToReceive
+  }
+
+  /** Wait to receive a value in this channel.  Pre: the channel is open and
+    * there is no sending alt waiting. */
+  private def waitToReceive: A = {
+    dataAvailable.await(length > 0 || isClosed)   // wait for data (2)
+    checkOpen
+    completeReceive // Remove item, signal and return result
   }
 
   /** Complete a receive by removing an item and signalling. */
   @inline protected def completeReceive(): A = {
     val result = data(first); first = (first+1)%size; length -= 1
-    spaceAvailable.signal()
+    spaceAvailable.signal()                      // signal to sender at (1)
     if(isClosedOut && length == 0) close()
     result
   }
 
-// IMPROVE: should following be in InPort?
-  /** Register that `alt` is trying to receive on this from its branch with
-    * index `index` on iteration `iter`. */
-  // private [channel] def registerIn(alt: AltT, index: Int, iter: Int)
-  //     : RegisterInResult[A] = lock.mutex{
-  //   require(receivingAlt == null)
-  //   if(isClosed) RegisterInClosed
-  //   else if(length > 0){
-  //     val result = completeReceive()          // remove item and signal
-  //     RegisterInSuccess(result)
-  //   }
-  //   else{
-  //     receivingAlt = (alt, index, iter)
-  //     RegisterInWaiting 
-  //   }
-  // } 
+  // Following might be too strict
 
-  /** Record that `alt` is no longer trying to receive on this. */
-  // private [channel] 
-  // def deregisterIn(alt: AltT, index: Int, iter: Int) = lock.mutex{
-  //   assert(receivingAlt == (alt,index,iter) || receivingAlt == null)
-  //   // Might have receivingAlt = null if this has just closed.
-  //   receivingAlt = null
-  // }
+  /** Can an alt register at the InPort? */
+  protected def canRegisterIn = receivingAlt == null && sendingAlt == null 
+
+  /** Can an alt register at the OutPort? */
+  protected def canRegisterOut = receivingAlt == null && sendingAlt == null 
 
 }

@@ -8,17 +8,6 @@ class Closed extends ox.scl.Stopped
 
 // ==================================================================
 
-/** The sending end of a channel. */
-trait OutPort[A]{
-  /** Send `x` on the channel. */
-  def !(x: A): Unit
-
-  /** Close the channel for sending. */
-  def closeOut(): Unit
-}
-
-// ==================================================================
-
 /** The superclass of channels. */
 trait Chan[A] extends InPort[A] with OutPort[A]{
   /** Close the channel. */

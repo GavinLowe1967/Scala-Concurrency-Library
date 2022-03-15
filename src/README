@@ -8,15 +8,28 @@ Sorting practical
 
 Dining Philosophers practical: two parts done; need to do version with timeout.
 
-Client-server examples
+Client-server examples -- done
+
+In linearizability testing and Log, check operating system if tsQueue
 
 -----------------
 
 Alternation:
-- Extend to buffered channels
-- Extend to sending branches
-- Think about restrictions on usage
+- Extend to buffered channels -- done
+
+- Extend to sending branches -- done
+
+- Examples with clients and servers -- done 
+
+- In SyncChan, have send wait only if receiversWaiting = 0
+
+- Implement timed sends/receives in channels
+
+- Think about restrictions on usage: I think we can't have both ends of a SyncChan in alts.
+
 - When repeating, start registering from where the previous round finished.
+
+- Pass channels by name, not value. 
 
 ---------------
 

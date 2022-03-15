@@ -39,6 +39,7 @@ package object scl{
   /** Implicit conversion to allow a guard on a branch of an alt. 
     * 
     * Code adapted from Bernard Sufrin's CSO. */ 
+/*
   implicit class Guarded(guard: => Boolean){
     @deprecated("CSO-style bracketing of guard and InPort is unnecessary")
     def &&[T](port: channel.InPort[T]) =
@@ -49,22 +50,27 @@ package object scl{
     def &&[T](chan: alternation.channel.Chan[T])    = 
       new alternation.channel.GuardedChan[T](()=>guard, chan) */
   }
+ */
 
-  /** Implicit conversion to allow a guard on a branch of an alt. */ 
+  /** Implicit conversion to allow a guard on a branch of an alt. 
+    * 
+    * Code adapted from Bernard Sufrin's CSO. */ 
   implicit class GuardedIP(guard: => Boolean){
+    /** Add a guard to an InPort branch. */
     def &&[A](uipb: channel.UnguardedInPortBranch[A]) = 
       new channel.InPortBranch(() => guard, uipb.inPort, uipb.body)
+
+    /** Add a guard to an OutPort branch. */
+    def &&[A](uopb: channel.UnguardedOutPortBranch[A]) =
+      new channel.OutPortBranch(() => guard, uopb.outPort, uopb.value, uopb.cont)
   }
 
   /** Construct an `alt` from `branches`. */
   def alt(body: channel.AltBranch) = 
     new channel.Alt(body.unpack.toArray)()
 
-  def serve(body: channel.AltBranch) = {
-    val branches = body.unpack.toArray
-    new channel.Alt(branches).repeat
-    // repeat{ new channel.Alt(branches)() }
-  }
+  def serve(body: channel.AltBranch) =
+    new channel.Alt(body.unpack.toArray).repeat
 
   // =======================================================
   /* Make various classes available without full qualification. */

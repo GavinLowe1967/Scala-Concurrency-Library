@@ -27,6 +27,8 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
    * the lock of the port: this implies that after deregistration of a port,
    * there can be no subsequent call-back from that port.  */
 
+// FIXME: store place to start registration from one iteration to the next. 
+
   private val size = branches.length
 
   /** Is this still registering with other branches? */
@@ -49,20 +51,33 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
   // Note: iter is used only for assertions, so could be removed.
 
   /** Run this alt once. */
-  def apply(): Unit = {
+  def apply(): Unit = { 
     require(numEnabled == 0 && enabled.forall(_ == false) && !done)
     var i = 0; synchronized{ registering = true }
     // Register with each branch
     while(i < size && !done){
       branches(i) match{
         case ipb: InPortBranch[_] => 
-          val guard = ipb.guard()
-          if(guard){
+          if(ipb.guard()){
             ipb.inPort.registerIn(this, i, iter) match{
               case RegisterInClosed => enabled(i) = false
               case RegisterInSuccess(x) => 
-                 ipb.valueReceived = x; toRun = i; done = true
+                ipb.valueReceived = x; toRun = i; done = true
+                // println(s"Alt: success on inport registration $i $iter")
               case RegisterInWaiting => enabled(i) = true; numEnabled += 1
+                // println(s"Alt: failure on inport registration $i $iter");
+            }
+          }
+        case opb: OutPortBranch[_] =>
+          if(opb.guard()){
+            opb.outPort.registerOut(this, i, iter, opb.value) match{
+              case RegisterOutClosed => enabled(i) = false
+              case RegisterOutSuccess => 
+                // println("Alt: success on registration"); 
+                toRun = i; done = true
+              case RegisterOutWaiting => 
+                // println("Alt: unsuccessful registration"); 
+                enabled(i) = true; numEnabled += 1
             }
           }
       } // end of match
@@ -81,40 +96,69 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     } // end of synchronized block
 
     // Either a ready branch was identified during registration, or one called
-    // maybeReceive.  Deregister all other branches, and run the ready branch.
-    // Do this without locking, to avoid blocking call-backs.
+    // maybeReceive.  Deregister all other branches.  Do this without locking,
+    // to avoid blocking call-backs.
     i = 0
     while(i < size){
       if(i != toRun && enabled(i)) branches(i) match{
         case ipb: InPortBranch[_] => ipb.inPort.deregisterIn(this, i, iter)
+        case opb: OutPortBranch[_] => opb.outPort.deregisterOut(this, i, iter)
       } // end of match
       i += 1
     } // end of while loop
+
     // Run ready branch.
     branches(toRun) match{
       case ipb: InPortBranch[_] => ipb.body(ipb.valueReceived)
+      case opb: OutPortBranch[_] => opb.cont()
     }
   }
 
-  /** Potentially receive value from the InPort of branch `i`. */
-  def maybeReceive[A](value: A, i: Int, iter: Int): Boolean = synchronized{
+  // ================================= Call-backs from ports
+
+  /** Potentially receive value from the InPort of branch `index`. */
+  private[channel] 
+  def maybeReceive[A](value: A, index: Int, iter: Int): Boolean = synchronized{
+    // println(s"maybeReceive($index, $iter): ${!done}")
     assert(iter == this.iter)
     while(registering) wait() // Wait for registration to finish
-    assert(iter == this.iter && numEnabled > 0 && enabled(i))
-    if(done){ enabled(i) = false; false }
+    assert(iter == this.iter && numEnabled > 0 && enabled(index))
+    if(done){ enabled(index) = false; false }
     else{
-      assert(enabled(i)); enabled(i) = false
-      branches(i) match{
+      assert(enabled(index)); enabled(index) = false
+      branches(index) match{
         case ipb: InPortBranch[A @unchecked] =>
-          ipb.valueReceived = value; toRun = i // Store value in the branch
+          ipb.valueReceived = value; toRun = index // Store value in the branch
           done = true; notify()                // signal to apply() at (1)
       }
       true
     }
   }
 
+  /** Potentially send on the OutPort of branch `index`. */
+  private[channel] 
+  def maybeSend[A](index: Int, iter: Int): Option[A] = synchronized{
+    // println(s"maybeSend($index, $iter)")
+    assert(iter == this.iter)
+    while(registering) wait() // Wait for registration to finish
+    assert(iter == this.iter && numEnabled > 0 && enabled(index))
+    if(done){ /*println("failed");*/ enabled(index) = false; None }
+    else{
+      assert(enabled(index)); enabled(index) = false;
+      // println("send in maybeSend")
+      branches(index) match{
+        case opb: OutPortBranch[A @unchecked] => 
+          toRun = index; done = true; notify(); Some(opb.value())
+          // Note it's important to evaluate opb.value here, before the alt
+          // executed the continuation or goes on to the next iteration, which
+          // might change the state.
+      }
+    }
+  }
+
   /** Receive indication from branch `i` that the port has closed. */
-  def portClosed(i: Int, iter: Int) = synchronized{
+  private[channel] def portClosed(i: Int, iter: Int) = synchronized{
+    // println(s"portClosed $i $iter")
     assert(iter == this.iter)
     while(registering) wait() // Wait for registration to finish
     assert(!registering && enabled(i) && iter == this.iter,
@@ -135,5 +179,4 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
 
   /** Run this repeatedly. */
   def repeat = ox.scl.repeat{ apply(); reset } 
-// FIXME: store place to start registration from one iteration to the next. 
 }

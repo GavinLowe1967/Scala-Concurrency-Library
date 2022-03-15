@@ -1,6 +1,6 @@
 DIR = .
 
-all:   $(DIR)/Phils.class
+all:   $(DIR)/Phils.class $(DIR)/Buff2.class
 
 clean:
 	rm $(DIR)/*.class $(DIR)/*/*.class; fsc -shutdown

@@ -8,7 +8,8 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
 
   /** Create a thread with name `name` that performs `comp`, where `threadInfo`
     * = `(name, comp)`. */
-  private def mkThread(threadInfo: (String, Unit => Unit)): java.lang.Thread = {
+  protected def mkThread(threadInfo: (String, Unit => Unit))
+      : java.lang.Thread = {
     val (name, comp) = threadInfo
     val th = new java.lang.Thread(new Runnable{ def run = comp(()) })
     if(name != null) th.setName(name)
@@ -42,4 +43,8 @@ object Computation{
 
 /** A thread with name `name` (if non-null) that will execute `comp`. */
 class Thread(name: String, comp: => Unit) 
-    extends Computation(List( (name, _ => comp) ))
+    extends Computation(List( (name, _ => comp) )){
+
+  override def fork = mkThread((name, _ => comp)).start
+
+}

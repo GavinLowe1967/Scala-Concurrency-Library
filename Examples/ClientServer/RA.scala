@@ -13,13 +13,20 @@ trait RAServer{
   def requestResource(me: ClientId): Option[Resource]
 
   /** Return a resource. */
-  def returnResource(me: ClientId, r: Resource)
+  def returnResource(me: ClientId, r: Resource): Unit
 
   /** Shut down the server. */
-  def shutdown
+  def shutdown: Unit
 
-  def mkChan[A](buffChan: Boolean) = 
+  /** Create a buffered (size 5) or unbuffered channel of type A, depending on
+    * buffChan. */
+  def mkChan[A: scala.reflect.ClassTag](buffChan: Boolean) = 
     if(buffChan) new BuffChan[A](5) else new SyncChan[A]
+
+  /** Create a one-place buffered or unbuffered channel of type A, depending on
+    * buffChan. */
+  def mkChan1[A: scala.reflect.ClassTag](buffChan: Boolean) = 
+    if(buffChan) new BuffChan[A](1) else new SyncChan[A]
 }
 
 // -------------------------------------------------------
@@ -41,7 +48,7 @@ class RAServer1(clients: Int, numResources: Int, buffChan: Boolean)
   /* Channel for shutting down the server. */
   private val shutdownChan = mkChan[Unit](buffChan)
 
-  private def server = thread{
+  private def server = thread("server"){
     // Record whether resource i is available in free(i)
     val free = Array.fill(numResources)(true)
 
@@ -87,15 +94,11 @@ object RA{
   val p = 5 // number of clients
   val numResources = 10 // number of resources
 
-  // Create Resource Server object
-  val resourceServer = new RAServer3(numResources)
-  // new RAServer1(p, numResources)
-
-  type Resource = resourceServer.Resource
-  type ClientId = resourceServer.ClientId
+  type Resource = Int // resourceServer.Resource
+  type ClientId = Int // resourceServer.ClientId
 
   /** A client */
-  def client(me: ClientId) = thread{
+  def client(me: ClientId, resourceServer: RAServer) = thread{
     var got = new scala.collection.mutable.Queue[Resource]()
     repeat{
       if(Random.nextInt(2) == 0){
@@ -118,10 +121,30 @@ object RA{
   }
 
   // Put the system together
-  def clients = || (for (c <- 0 until p) yield client(c))
 
-  def main(args : Array[String]) = clients() 
+  def main(args : Array[String]) = {
 
+    // Parse command line arguments
+    var rsType = 1 // Which resource server to use
+    var i = 0; var buffered = false
+    //var reps = 1000 // # times to repeat
+    while(i < args.length) args(i) match{
+      case "-1" => rsType = 1; i += 1
+      case "-2" => rsType = 2; i += 1
+      case "-3" => rsType = 3; i += 1
+      case "--buffered" => buffered = true; i += 1
+      //case "--iters" => iters = args(i+1).toInt; i += 2
+      //case "--reps" => reps = args(i+1).toInt; i += 2
+      case arg => println("Unrecognised argument: "+arg); sys.exit
+    }
+
+    // Create Resource Server object
+    val resourceServer: RAServer =
+      if(rsType == 1) new RAServer1(p, numResources, buffered)
+      else if(rsType == 2) new RAServer2(numResources, buffered)
+      else{ assert(rsType == 3); new RAServer3(numResources, buffered) }
+    run( || (for (c <- 0 until p) yield client(c, resourceServer)) )
+  }
 }
 
 // -------------------------------------------------------
@@ -129,14 +152,14 @@ object RA{
 /** A resource server. 
   * This version assumes the number of clients is not known initially.
   * @param numResources the number of resources.  */
-class RAServer2(numResources: Int) extends RAServer{
+class RAServer2(numResources: Int, buffChan: Boolean) extends RAServer{
   private type ReplyChan = Chan[Option[Resource]]
   /* Channel for requesting a resource. */
-  private val acquireRequestChan = ManyOne[ReplyChan]
+  private val acquireRequestChan = mkChan[ReplyChan](buffChan)
   /* Channel for returning a resource. */
-  private val returnChan = ManyOne[Resource]
+  private val returnChan = mkChan[Resource](buffChan)
   /* Channel for shutting down the server. */
-  private val shutdownChan = ManyOne[Unit]
+  private val shutdownChan = mkChan[Unit](buffChan)
 
   private def server = thread{
     // Record whether resource i is available in free(i)
@@ -164,7 +187,7 @@ class RAServer2(numResources: Int) extends RAServer{
 
   /** Request a resource. */
   def requestResource(me: ClientId): Option[Resource] = {
-    val replyChan = OneOne[Option[Resource]]
+    val replyChan = mkChan1[Option[Resource]](buffChan)
     acquireRequestChan!replyChan  // send request
     replyChan?() // wait for response
   }
@@ -182,14 +205,14 @@ class RAServer2(numResources: Int) extends RAServer{
 /** A resource server. 
   * This version buffers requests until they can be served.
   * @param numResources the number of resources.  */
-class RAServer3(numResources: Int) extends RAServer{
+class RAServer3(numResources: Int, buffChan: Boolean) extends RAServer{
   private type ReplyChan = Chan[Option[Resource]]
   /* Channel for requesting a resource. */
-  private val acquireRequestChan = ManyOne[ReplyChan]
+  private val acquireRequestChan = mkChan[ReplyChan](buffChan)
   /* Channel for returning a resource. */
-  private val returnChan = ManyOne[Resource]
+  private val returnChan = mkChan[Resource](buffChan)
   /* Channel for shutting down the server. */
-  private val shutdownChan = ManyOne[Unit]
+  private val shutdownChan = mkChan[Unit](buffChan)
 
   private def server = thread{
     // Record whether resource i is available in free(i)
@@ -225,7 +248,7 @@ class RAServer3(numResources: Int) extends RAServer{
   /** Request a resource. 
     * In fact, this version never returns None. */
   def requestResource(me: ClientId): Option[Resource] = {
-    val replyChan = OneOne[Option[Resource]]
+    val replyChan = mkChan1[Option[Resource]](buffChan)
     acquireRequestChan!replyChan  // send request
     replyChan?() // wait for response
   }

@@ -1,5 +1,5 @@
-import io.threadcso._
-import io.threadcso.debug.Log
+import ox.scl._
+import ox.scl.debug.Log
 import scala.util.Random
 
 /** An object to test the resource allocation server. */
@@ -8,7 +8,6 @@ object RATest{
   var p = 5 // number of clients
   var iters = 1000 // # iterations by each client
   var numResources = 10 // # resources
-  val reps = 1000 // # times to repeat
 
   type Resource = Int
   type ClientId = Int
@@ -19,7 +18,8 @@ object RATest{
   case class ReturnedResource(c: ClientId, r: Resource) extends LogEvent
 
   /** A client */
-  def client(me: ClientId, resourceServer: RAServer, log: Log[LogEvent]) = proc{
+  def client(me: ClientId, resourceServer: RAServer, log: Log[LogEvent]) 
+  = thread(s"client $me"){
     var got = new scala.collection.mutable.Queue[Resource]()
     val random = new Random(me+System.nanoTime)
     for(_ <- 0 until iters){
@@ -42,6 +42,7 @@ object RATest{
       log.add(me, ReturnedResource(me, r))
       resourceServer.returnResource(me, r)
     }
+    // println(s"client $me done")
   }
 
   /** Check that events represents a valid log: if a GotResource event happens,
@@ -72,7 +73,7 @@ object RATest{
     //println
     val log = new Log[LogEvent](p)
     val clients = || (for (i <- 0 until p) yield client(i, resourceServer, log))
-    try{ clients() } finally{ log.toFile("logFile") }
+    try{ run(clients) } finally{ log.toFile("logFile") }
     resourceServer.shutdown
     if(!checkLog(log.get)) sys.exit
   }
@@ -80,11 +81,15 @@ object RATest{
   def main(args: Array[String]) = {
     // Parse command line arguments
     var rsType = 1 // Which resource server to use
-    var i = 0
+    var i = 0; var buffered = false
+    var reps = 1000 // # times to repeat
     while(i < args.length) args(i) match{
       case "-1" => rsType = 1; i += 1
       case "-2" => rsType = 2; i += 1
       case "-3" => rsType = 3; i += 1
+      case "--buffered" => buffered = true; i += 1
+      case "--iters" => iters = args(i+1).toInt; i += 2
+      case "--reps" => reps = args(i+1).toInt; i += 2
       case arg => println("Unrecognised argument: "+arg); sys.exit
     }
 
@@ -98,13 +103,14 @@ object RATest{
 
     for(r <- 0 until reps){
       val resourceServer =
-        if(rsType == 1) new RAServer1(p, numResources)
-        else if(rsType == 2) new RAServer2(numResources) 
-        else{ assert(rsType == 3); new RAServer3(numResources) }
+        if(rsType == 1) new RAServer1(p, numResources, buffered)
+        else if(rsType == 2) new RAServer2(numResources, buffered) 
+        else{ assert(rsType == 3); new RAServer3(numResources, buffered) }
       runTest(resourceServer)
       if(r%10 == 0) print(".")
+      // println
     }
-    println; io.threadcso.exit()
+    println
   }
 
 }

@@ -10,18 +10,9 @@ class SyncChan[A] extends Chan[A]{
   /** Is the current value of value valid, i.e. ready to be received? */
   private var full = false
 
-  /** Is the channel closed. */
-  //private var isClosed = false
+  private var receiversWaiting = 0
 
-  @inline protected def canReceive = full
-
-  /** An Alt that is potentially waiting to receive from this, combined with the
-    * index number of the branch in that alt, and the iteration number for the
-    * alt.  Note: the iteration number is used only for assertions. */
-  //private var receivingAlt: (AltT, Int, Int) = null
-
-  /** Monitor for controlling synchronisations. */
-  //private val lock = new ox.scl.lock.Lock
+  protected val lock = new ox.scl.lock.Lock
 
   /** Condition for signalling to receiver that a value has been deposited. */
   private val slotFull = lock.newCondition
@@ -33,16 +24,16 @@ class SyncChan[A] extends Chan[A]{
     * been read. */
   private val slotEmptied = lock.newCondition
 
+  // ================================= Closing
+
   /** Close the channel. */
   def close() = lock.mutex{
-    isClosed = true; full = false
+    isClosed = true
     // Signal to waiting threads
     slotEmptied.signalAll(); slotFull.signalAll(); continue.signalAll()
     // Signal to waiting alt, if any
-    if(receivingAlt != null){
-      val (alt, index, iter) = receivingAlt
-      alt.portClosed(index, iter); receivingAlt = null
-    }
+    informAltInPortClosed()  // in InPort
+    informAltOutPortClosed() // in OutPort
   }
 
   /** Close the channel for receiving: this closes the whole channel. */
@@ -51,43 +42,77 @@ class SyncChan[A] extends Chan[A]{
   /** Close the channel for sending: this closes the whole channel. */
   def closeOut() = close()
 
+  /** Is the channel closed for output? */
+  def isClosedOut = isClosed
+
   /** Reopen the channel.  Precondition: the channel is closed, and no threads
     * are trying to send or receive. */
   def reopen() = lock.mutex{
-    require(isClosed && !full); isClosed = false
+    require(isClosed); isClosed = false; full = false
+    sendingAlt = null; receivingAlt = null
   }
 
   /** Check the channel is open, throwing a Closed exception if not. */
   @inline private def checkOpen = if(isClosed) throw new Closed
 
+  // ================================= Sending
+
+  /** Is a receive possible in the current state? */
+  @inline protected def canReceive = full
+
   /** Send `x` on this channel. */
   def !(x: A) = lock.mutex{
     slotEmptied.await(!full || isClosed)
-                             // wait for previous value to be consumed (1)
+                                // wait for previous value to be consumed (1)
     checkOpen
-    // Try sending to an alt, if possible
-    // var done = false
-    // if(receivingAlt != null){
-    //   val (alt, index, iter) = receivingAlt
-    //   // See if alt is still willing to receive from this
-    //   if(alt.maybeReceive(x, index, iter)) done = true 
-    //   // Either way, it won't be willing to receive subsequently
-    //   receivingAlt = null
-    // }
-    if(!tryAltCallBack(x)){
-      value = x; full = true   // deposit my value
-      slotFull.signal()        // signal to receiver at (3)
+    if(tryAltReceive(x))        // Send to an alt, if possible (in InPort)
+      slotEmptied.signal        // signal to another sender at (1)
+    else{
+      value = x; full = true    // deposit my value
+      if(receiversWaiting > 0){
+        slotFull.signal()        // signal to receiver at (3)
+        receiversWaiting -= 1
+      }
+// IMPROVE: following only if receiversWaiting = 0
       continue.await()         // wait for receiver (2)
       checkOpen
     }
   }
 
+  /** Try to send the result of `x`, from an alt.  Return true if successful. */
+  protected def trySend(x: () => A): Boolean = 
+    // IMPROVE alt-to-alt communication ???
+    if(receiversWaiting > 0){ 
+      value = x(); full = true   // deposit my value
+      // println(s"can send $value; receiversWaiting = $receiversWaiting"); 
+      slotFull.signal()        // signal to receiver at (3)
+      receiversWaiting -= 1
+      true
+    }
+    else false
+
+  // ================================= Receiving
+
   /** Receive a value from this channel. */
-  def ?(u: Unit) : A = lock.mutex{
-    slotFull.await(full || isClosed)  // wait for sender (3)
+  def ?(u: Unit): A = lock.mutex{
     checkOpen
-    completeReceive             // clear slot and signal
-    //value
+    tryAltSend match{
+      case Some(x:A @unchecked) => x
+      case None => waitToReceive
+    }
+  }
+
+  /** Wait to receive a value in this channel.  Pre: the channel is open and
+    * there is no sending alt waiting.*/
+  private def waitToReceive: A = {
+    if(!full){
+      receiversWaiting += 1
+      //println(s"waitToReceive; receiversWaiting = $receiversWaiting")
+      slotFull.await(full || isClosed)  // wait for sender (3)
+      // println(s"waiting done; receiversWaiting = $receiversWaiting")
+      checkOpen
+    }
+    completeReceive             // clear slot, signal and return result
   }
 
   /** Complete a receive by clearing the slot and signalling. */
@@ -98,30 +123,12 @@ class SyncChan[A] extends Chan[A]{
     value
   }
 
-  /** Register that `alt` is trying to receive on this from its branch with
-    * index `index` on iteration `iter`. */
-  // private [channel] def registerIn(alt: AltT, index: Int, iter: Int)
-  //     : RegisterInResult[A] = lock.mutex{
-  //   require(receivingAlt == null)
-  //   if(isClosed) RegisterInClosed
-  //   else if(full){
-  //     val result = completeReceive           // clear slot and signal
-  //     RegisterInSuccess(result)
-  //   }
-  //   else{
-  //     receivingAlt = (alt, index, iter)
-  //     RegisterInWaiting 
-  //   }
-  // } 
+  /** Can an alt register at the InPort? */
+  protected def canRegisterIn = receivingAlt == null && sendingAlt == null 
 
-  /** Record that `alt` is no longer trying to receive on this. */
-  // private [channel] 
-  // def deregisterIn(alt: AltT, index: Int, iter: Int) = lock.mutex{
-  //   assert(receivingAlt == (alt,index,iter) || receivingAlt == null)
-  //   // Might have receivingAlt = null if this has just closed or this made a
-  //   // previous call of maybeReceive on alt.
-  //   receivingAlt = null
-  // }
+  /** Can an alt register at the OutPort? */
+  protected def canRegisterOut = receivingAlt == null && sendingAlt == null 
+
 }
 
 /*
