@@ -1,6 +1,7 @@
 package ox.scl.channel
 
 import ox.scl.lock.Lock
+import java.lang.System.nanoTime
 
 /** A synchronous channel passing data of type `A`. */
 class SyncChan[A] extends Chan[A]{
@@ -48,8 +49,8 @@ class SyncChan[A] extends Chan[A]{
   /** Reopen the channel.  Precondition: the channel is closed, and no threads
     * are trying to send or receive. */
   def reopen() = lock.mutex{
-    require(isClosed); isClosed = false; full = false
-    sendingAlt = null; receivingAlt = null
+    require(isClosed, s"reopen called of $this, but it isn't closed.") 
+    isClosed = false; full = false; sendingAlt = null; receivingAlt = null
   }
 
   /** Check the channel is open, throwing a Closed exception if not. */
@@ -66,7 +67,7 @@ class SyncChan[A] extends Chan[A]{
                                 // wait for previous value to be consumed (1)
     checkOpen
     if(tryAltReceive(x))        // Send to an alt, if possible (in InPort)
-      slotEmptied.signal        // signal to another sender at (1)
+      slotEmptied.signal        // signal to another sender at (1), (1') or (1'')
     else{
       value = x; full = true    // deposit my value
       completeSend
@@ -76,16 +77,21 @@ class SyncChan[A] extends Chan[A]{
   /** Complete the send by maybe signalling to a waiting receiver, and then
     * waiting for a signal back. */
   @inline private def completeSend = {
-    if(receiversWaiting > 0){
-      slotFull.signal()        // signal to receiver at (3)
-      receiversWaiting -= 1
-      // println(s"Signal: receiversWaiting = $receiversWaiting")
-    }
+    maybeSignalToReceiver
     // Note: following is necessary even if receiversWaiting > 0; otherwise
     // this value might be taken by a new thread that starts after this
     // finishes (or after the alt has done something else).
     continue.await()         // wait for receiver (2)
     checkOpen
+  }
+
+  /** Signal to a waiting receiver if there is one. */
+  @inline private def maybeSignalToReceiver = {
+    if(receiversWaiting > 0){
+      slotFull.signal()        // signal to receiver at (3)
+      receiversWaiting -= 1
+      // println(s"Signal: receiversWaiting = $receiversWaiting")
+    }
   }
 
   /** Try to send the result of `x`, from an alt.  Return true if successful.
@@ -105,6 +111,38 @@ class SyncChan[A] extends Chan[A]{
         true
       }
     }
+
+  /** Try to send `x` within `nanos` nanoseconds.  
+    * @returns boolean indicating whether send successful. */
+  def sendBefore(x: A, nanos: Long): Boolean = lock.mutex{
+    val deadline = nanoTime+nanos; // var timeout = false
+    // Wait until !full || isClosed, but for at most nanos ns.
+    val timeout = !slotEmptied.awaitNanos(nanos, !full || isClosed)
+    // while(!timeout && full && !isClosed){
+    //   timeout = !slotEmptied.awaitNanos(nanos)  // (1'')
+    // }
+    checkOpen
+    if(timeout) false
+    else if(tryAltReceive(x)){      // Send to an alt, if possible (in InPort)
+      slotEmptied.signal()          // signal to another sender at (1)/(1')/(1'')
+      true                          // Success
+    }
+    else{
+      //println("filling")
+      assert(!full); value = x; full = true    // deposit my value
+      maybeSignalToReceiver
+      //println("waiting")
+      val success = continue.awaitNanos(deadline-nanoTime)
+                                             // wait for receiver (2'')
+      checkOpen
+      if(success) true                       // Success
+      else{                                  // No corresponding receiver
+        assert(full && value == x); full = false
+        slotEmptied.signal()       // signal to another sender at (1)/(1')/(1'')
+        false
+      }
+    }
+  }
 
   // ================================= Receiving
 
@@ -126,8 +164,7 @@ class SyncChan[A] extends Chan[A]{
     result match{
       case Some(x) => /* println("second-attempt tryAltSend"); */  x
       case None => 
-        assert(full) // println(s"Waiting again")
-        completeReceive             // clear slot, signal and return result
+        assert(full); completeReceive    // clear slot, signal and return result
     }
   }
 
@@ -138,6 +175,31 @@ class SyncChan[A] extends Chan[A]{
     slotEmptied.signal()    // notify next sender at (1) or (1')
     value
   }
+
+  /** Try to receive within `nanos` nanoseconds. 
+    * @return `Some(x)` if `x` received, otherwise `None`. */
+  def receiveBefore(nanos: Long): Option[A] = lock.mutex{
+    val deadline = nanoTime+nanos
+    checkOpen
+    // Try to receive from an alt first
+    var result = tryAltSend; var timeout = false
+    while(result.isEmpty && !full && !timeout){
+      // Have to wait
+      receiversWaiting += 1
+      timeout = !slotFull.awaitNanos(deadline-nanoTime)
+      checkOpen
+      if(!timeout && !full) result = tryAltSend
+    }
+    if(timeout){ assert(nanoTime-deadline >= 0); None }
+    else result match{
+      case Some(x) => Some(x)
+      case None => 
+        assert(full)
+        Some(completeReceive)   // clear slot, signal and return result
+    }
+  }
+
+  // ======================================== Registration rules
 
   /** Can an alt register at the InPort? */
   protected def canRegisterIn = receivingAlt == null && sendingAlt == null 

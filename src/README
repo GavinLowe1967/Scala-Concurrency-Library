@@ -12,6 +12,8 @@ Client-server examples -- done
 
 In linearizability testing and Log, check operating system if tsQueue
 
+Catch errors in threads -- done
+
 -----------------
 
 Alternation:
@@ -21,13 +23,22 @@ Alternation:
 
 - Examples with clients and servers -- done 
 
-- In SyncChan, have send wait only if receiversWaiting = 0
+- In SyncChan, have send wait only if receiversWaiting = 0 -- unsound! 
 
-- Implement timed sends/receives in channels
+- Implement timed sends/receives in channels -- done
 
-- Think about restrictions on usage: I think we can't have both ends of a SyncChan in alts.
+- When repeating, start registering from where the previous round finished. --
+  done
 
-- When repeating, start registering from where the previous round finished.
+- In channels, would it be better for sender to signal on slotEmptied?
+
+- Do final version of Dining Philosophers
+
+- Do rest of datatypes
+
+- Think about restrictions on usage: I think we can't have both ends of a
+  SyncChan in alts, but it's ok with a BuffChan.  Do run-time tests for
+  enforcement.
 
 - Pass channels by name, not value. 
 

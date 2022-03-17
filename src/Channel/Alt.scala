@@ -54,8 +54,8 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
   private var registerFirst = 0
 
   /** Run this alt once. */
-  def apply(): Unit = { 
-    require(numEnabled == 0 && enabled.forall(_ == false) && !done)
+  private [scl] def apply(): Unit = { 
+    assert(numEnabled == 0 && enabled.forall(_ == false) && !done)
     var offset = 0; synchronized{ registering = true }
     // Register with each branch
     while(offset < size && !done){
@@ -188,5 +188,5 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
   }
 
   /** Run this repeatedly. */
-  def repeat = ox.scl.repeat{ apply(); reset } 
+  private[scl] def repeat = ox.scl.repeat{ apply(); reset } 
 }

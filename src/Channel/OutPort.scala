@@ -5,6 +5,10 @@ trait OutPort[A]{
   /** Send `x` on the channel. */
   def !(x: A): Unit
 
+  /** Try to send `x` within `nanos` nanoseconds.  
+    * @returns boolean indicating whether send successful. */
+  def sendBefore(x: A, nanos: Long): Boolean
+
   /** Close the channel for sending. */
   def closeOut(): Unit
 

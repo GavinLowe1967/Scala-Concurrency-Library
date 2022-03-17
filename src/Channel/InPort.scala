@@ -5,6 +5,10 @@ trait InPort[A]{
   /** Receive on the inport. */
   def ?(u: Unit): A
 
+  /** Try to receive within `nanos` nanoseconds. 
+    * @return `Some(x)` if `x` received, otherwise `None`. */
+  def receiveBefore(nanos: Long): Option[A]
+
   /** Close the channel for receiving. */
   def closeIn(): Unit
 

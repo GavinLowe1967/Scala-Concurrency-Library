@@ -54,7 +54,7 @@ class Condition(lock: Lock){
   @inline private def checkThread = 
     assert(Thread.currentThread == lock.locker, 
       s"Action on Condition by thread ${Thread.currentThread}, but the "+
-        "corresponding lock is held by ${lock.locker}")
+        s"corresponding lock is held by ${lock.locker}")
 
   /** Queue holding ThreadInfos for waiting threads.
     * This is accessed only by a thread holding lock. */
@@ -78,6 +78,45 @@ class Condition(lock: Lock){
 
   /** Wait until `test` is true, rechecking when a signal is received. */
   def await(test: => Boolean): Unit = while(!test) await()
+
+  import java.lang.System.nanoTime
+
+  /** Wait on this condition for at most nanos nanoseconds.  Return true if a
+    * signal was received. */
+  def awaitNanos(nanos: Long): Boolean = {
+    val deadline = nanoTime+nanos // time to timeout
+    checkThread
+    var wasInterrupted = false
+    // record that I'm waiting
+    val myInfo = new ThreadInfo; waiters.enqueue(myInfo) 
+    lock.release                                    // release the lock
+    var remaining = deadline-nanoTime
+    while(!myInfo.ready && remaining > 0){
+      LockSupport.parkNanos(remaining)               // wait to be woken
+      if(Thread.interrupted){ myInfo.ready = true; wasInterrupted = true }
+      remaining = deadline-nanoTime
+    }
+    // Note: if the deadline is reached, but another thread signals to this
+    // thread before it reacquires the lock, then we treat the signal as
+    // having been received.
+    lock.acquire                                    // reacquire the lock
+    if(wasInterrupted)
+      Thread.currentThread.interrupt     // reassert interrupt status 
+    if(!myInfo.ready) waiters -= myInfo
+    myInfo.ready
+  }
+
+  /** Wait on this condition until test becomes true or for at most nanos
+    * nanoseconds.  Return true if test is true. */
+  def awaitNanos(nanos: Long, test: => Boolean): Boolean = {
+    val deadline = nanoTime+nanos // time to timeout
+    var testTrue = test; var remaining = nanos
+    while(!testTrue && remaining > 0){ 
+      awaitNanos(remaining); testTrue = test
+      if(!testTrue) remaining = deadline-nanoTime
+    }
+    testTrue
+  }
 
   /** Signal to the first waiting thread. */
   def signal() = {
