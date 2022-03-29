@@ -1,0 +1,162 @@
+\documentclass[12pt,a4paper]{article}
+\advance\textwidth by 30mm
+% \advance\leftmargin by -20mm
+\advance\oddsidemargin by -15mm
+\advance\evensidemargin by -15mm
+
+\title{SCL for CSO Programmers}
+\author{Gavin Lowe}
+\usepackage{scalalistings}
+
+\newenvironment{compare}{%
+  \begin{center}
+  \begin{tabular}{\|p{0.2\textwidth}p{0.2\textwidth}p{0.50\textwidth}\|}
+  \hline SCL syntax & CSO syntax & Comments  \\  \hline}
+{\\ \hline\end{tabular}\end{center}}
+
+\begin{document}
+\maketitle
+
+This document describes SCL (Scala Concurrency Library) for those familiar
+with CSO (Concurrent Scala Objects).
+
+SCL is heavily influenced by Bernard Sufrin's CSO\@.  Most of the names of
+classes and functions are unchanged.  However, a few changes have been made,
+for example to provide a simpler interface.
+
+Philosophy.
+
+SCL makes much less use of factory methods than CSO.
+
+%%%%%
+
+\subsection*{Computations}
+
+In SCL, the basic unit of a computation is a \emph{thread} of type |Thread|.
+The declaration \SCALA{thread\{ comp \}} creates a computation that when run
+executes |comp|.
+
+A \emph{computation} of type |Computation| represents the parallel composition
+of zero or more threads.  (|Thread| is a subtype of |Computation|.)  As with
+CSO, computations can be combined in parallel using \SCALA{\|\|}.
+
+\begin{compare}
+\SCALA{thread\{comp\}} & \SCALA{proc\{comp\}} &  
+  A thread that, when run, executes \SCALA{comp}. \\
+|Thread| & |PROC| & Type of a thread.  \\
+|Computation| & |PROC| & Type of a collection of threads. \\
+\SCALA{p \|\| q} & \SCALA{p \|\| q} & Parallel composition of |p| and |q|. \\
+\SCALA{\|\| ps} & \SCALA{\|\| ps} & Parallel composition of the collection of
+|Computation|s |ps|.  \\
+|run(p)| & |run(p)| or |p()| & Execute the threads |p|. \\
+|fork(p)| & |p.fork| & Executes |p| in a new JVM thread.
+\end{compare}
+
+Exceptions are treated slightly differently from in CSO\@.  When |run| is used,
+if a thread throws a |Stopped| exception, then that is caught and re-thrown
+when the computation ends; if any other sort of exception is thrown, that
+halts the program immediately.  When |fork| is used, if a thread throws any
+exception, that halts the program immediately.
+
+%% within a parallel composition throws an exception, the exception is printed
+%% and the program exits.
+
+%%%%%
+
+\subsection*{Channels}
+
+SCL makes no distinction between shared and unshared ports.  There are just
+two types of channels: synchronous (|SyncChan|) and buffered (|BuffChan|).
+SCL does not provide factory methods for channels, so a channel can be
+constructed with, for example, |new BuffChan[A](size)|\footnote{The type
+  \SCALA{A} of data for a \SCALA{BuffChan} must have an associated
+  \SCALA{ClassTag}.  When \SCALA{A} is a parametric type parameter, it is
+  enough to give the type bound  \SCALA{A: scala.reflect.ClassTag}.}.
+
+As with CSO, a channel comprises an |Inport| and an |OutPort|.  The syntax for
+standard sends and receives is unchanged.  The syntax for time-bounded sends
+and receives is changed slightly (see below).  
+
+The syntax for closing channels
+is mostly unchanged, except the |closeIn| operation has been removed (it was
+equivalent to |close|).  
+
+*** Not true!
+
+In addition, a |reopen| operation has been added to
+re-open a closed channel. 
+
+
+\begin{compare}
+|SyncChan[A]| & 
+  \raggedright |OneOne[A]|, |OneMany[A]|, |ManyOne[A]|, |ManyMany[A]|, |N2N[A]| &
+   Types of synchronous channels \\
+|BuffChan[A| & 
+  \raggedright |OneOneBuf[A]|, |ManyManyBuf[A]|, |N2NBuf[A]| &
+   Types of buffered channels. \\
+|c?()| & |c?()| & Receive from |InPort| |c|. \\
+|c!x| & |c!x| & Send |x| on |OutPort| |c|. \\
+|c.close| & |c.close|, |c.closeIn| & Fully close the channel. \\
+|c.closeOut| & |c.closeOut| & Close the channel for sending. \\
+|c.reopen| & --- & Reopen the channel. \\
+|c.receiveWithin| \hspace*{3mm}|(millis)| & |c.readBefore(nanos)| & 
+Receive from |c|, or timeout
+after |millis|~ms\slash |nanos| ns, returning an |Option| value. \\
+|c.sendWithin| \hspace*{3mm}|(millis)(x)| & 
+  |c.writeBefore| \hspace*{3mm}|(nanos)(x)| &
+Send |x| on |c|, or timeout
+after |millis|~ms\slash |nanos| ns, returning a boolean value.
+\end{compare}
+
+
+%%%%%
+
+\subsection*{Alternation}
+
+The syntax for alternation (|alt| and |serve|) is largely unchanged.
+Parentheses should not be placed around the guard and port.  The following
+example (a two-place buffer) illustrates most of the syntax.
+%
+\begin{scala}
+  var x = -1; var empty = true
+  serve(
+    !empty && out =!=> {x} ==> { empty = true }
+    | empty && in =?=> { v => x = v;  empty = false }
+    | !empty && in =?=> { v => out!x; x = v }
+  )
+\end{scala}
+
+Alternations in SCL have slightly fewer restrictions than in CSO\@.  It is
+possible for a port to be shared between an alt and a non-alt.  A port may be
+simultaneously enabled in several branches of the same alt (all but one
+instance will be ignored). However, the following restrictions remain:
+%
+\begin{itemize}
+\item A port cannot be simultaneously enabled in two alts.  This restriction
+  could be removed without too much difficulty.
+
+\item A channel may not have both of its port used simultaneously in alts.
+  This restriction is fairly necessary for synchronous channels, but, I think,
+  unnecessary for buffered channels.
+\end{itemize}
+% 
+
+As with CSO, the expressions defining the ports are evaluated \emph{once} when
+a |serve| is created, and not subsequently re-evaluated. 
+
+%%%%%
+
+\subsection*{Monitors}
+
+
+%%%%%
+
+\subsection*{Other}
+
+Barrier synchronisations
+
+Semaphores.
+
+Linearizability testing
+
+\end{document}

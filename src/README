@@ -8,11 +8,11 @@ Dining Philosophers practical -- done
 
 Client-server examples -- done
 
-In linearizability testing and Log, check operating system if tsQueue
-
 Catch errors in threads -- done
 
-Sorting practical
+Sorting practical -- done
+
+In linearizability testing and Log, check operating system if tsQueue
 
 Prac 3
 
@@ -20,6 +20,7 @@ Write up SCL for CSO
 
 Write up alt design
 
+Get rid of closeIn?
 
 -----------------
 
@@ -47,7 +48,7 @@ Alternation:
   SyncChan in alts, but it's ok with a BuffChan.  Do run-time tests for
   enforcement.
 
-- Pass channels by name, not value. 
+- Pass channels by name, not value -- that's far from easy!
 
 ---------------
 

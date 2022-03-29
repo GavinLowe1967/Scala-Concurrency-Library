@@ -1,0 +1,87 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage{scalalistings}
+\title{The implementation of \SCALA{alt} within SCL}
+\author{Gavin Lowe}
+
+\begin{document}
+\maketitle
+
+This note outlines the implementation of the |alt| construct within SCL (Scala
+Concurrency Library). 
+
+The execution of each iteration of an alt goes through several steps.
+%
+\begin{enumerate}
+\item \textbf{Registration:} the alt registers itself with the ports of its
+  branches.  If a port indicates at this point that it is ready, then the
+  communication itself happens, and execution of the alt skips to the
+  deregistration stage.
+    
+\item \textbf{Waiting:} if at least one branch was feasible, but none was
+  ready, then the Alt waits.
+    
+\item \textbf{Call-backs:} if a port becomes ready, it calls the
+  |maybeReceive| function, which causes the main thread to be woken.  If a
+  port is closed, it calls the |portClosed| function; if subsequently no
+  branch is feasible, then the main port is again woken, and it throws an
+  |AltAbort|.
+    
+\item \textbf{Deregistration:} all remaining registered ports are
+  deregistered.
+    
+\item \textbf{Completion:} The relevant code for the branch is executed,
+  either the body of an |InPort|, or the continuation of an |OutPort|.
+\end{enumerate}
+
+Note that the call-backs are performed by the thread at the other end of the
+channel.  All other steps are performed by the thread executing the alt.
+
+Code that involves calling a function in a port is executed \emph{outside} a
+|synchronized| block, to avoid deadlocks.  However, it is executed using the
+lock of the port.  If a call-back from a port happens during the registration
+phase, it is blocked until the registration is over.  If an attempt to
+deregister a port is made concurrently with a call-back from the same port,
+then the former is blocked until the call-back is complete.  Note that after
+deregistration of a port, there can be no subsequent call-back from that port.
+
+%%%%%
+
+\subsection*{Registration}
+
+If a port is enabled in several different branches, all but the first is
+ignored.
+
+
+%%%%%
+
+\subsection*{Restrictions}
+
+At most one alt can register at a port at a time.  (This restriction could be
+fairly easily removed: at present there's a single ``slot'' for storing the
+alt.)
+
+%% A port may not be enabled in two different branches of an alt: otherwise the
+%% attempt to register the latter while the former is making a call-back would
+%% lead to deadlock.  (This restriction could be fairly easily removed by
+%% detecting and ignoring such repetitions.)
+
+A synchronous channel may not have both of its ports in an alt.  Without this
+restriction, the following can happen: 
+\begin{itemize}
+\item Alt $a_1$ registers at the |InPort| of channel~$c_1$, and alt~$a_2$
+  registers at the |InPort| of channel~$c_2$;
+
+\item Alt $a_1$ tries to register at the |OutPort| of channel~$c_2$; the port
+  performs a call-back to alt~$a_2$, which is blocked because $a_2$ is still
+  registering.
+
+\item Similarly, alt $a_2$ tries to register at the |OutPort| of
+  channel~$c_1$; the port performs a call-back to alt~$a_1$, which is blocked
+  because $a_1$ is still registering.
+\end{itemize}
+%
+This constitutes a deadlock. 
+
+I think there is no need for a similar restriction concerning buffered
+channels, but it is currently prevented. 
