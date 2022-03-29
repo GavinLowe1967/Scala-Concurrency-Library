@@ -12,7 +12,7 @@ object ExceptionTest{
     run(t1 || t2)
   }
 
-  def main(args: Array[String]) = {
+  def old = {
     // In following, Stopped exception should be caught. 
     attempt{ threadException(true) }{ println("Stopped caught") }
     // In following, NotImplementedError should be printed leading to
@@ -20,6 +20,12 @@ object ExceptionTest{
     threadException(false)
     // Following should not be reached.
     assert(false, "unreachable")
+  }
+
+  def p = thread("p"){ ??? }
+
+  def main(args: Array[String]) = {
+    if(args.nonEmpty) fork(p) else run(p)
   }
 
 

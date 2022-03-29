@@ -1,4 +1,4 @@
-import io.threadcso._
+import ox.scl._
 import scala.util.Random
 
 /** Simulation of the Dining Philosophers example, using a timeout. */
@@ -9,58 +9,64 @@ object PhilsTO{
   def Eat = Thread.sleep(500)
   def Think = Thread.sleep(500)
   def Pause = Thread.sleep(200)
-  val waitTime = 1000000 // time to wait for second fork (in ns)
+  val waitTime = 400_000_000L // time to wait for second fork (in ns)  
 
-  // A channel to pick up a fork. 
-  type PickChannel = channel.DeadlineManyOne[Unit]
+  // Each philosopher will send "pick" and "drop" commands to her forks, which
+  // we simulate using the following values.
+  type Command = Boolean
+  val Pick = true; val Drop = false
 
   /** A single philosopher. */
-  private def phil(me: Int, leftPick: PickChannel, rightPick: PickChannel, 
-                   leftDrop: ![Unit], rightDrop: ![Unit])
-    = proc("Phil"+me){
+  private def phil(me: Int, left: ![Command], right: ![Command])
+  = thread("Phil"+me){
     repeat{
       Think
       println(s"$me sits"); Pause
-      leftPick!(); println(s"$me picks up left fork"); Pause
-      if(rightPick.writeBefore(waitTime)(())){
+      left!Pick; println(s"$me picks up left fork"); Pause
+      if(right.sendBefore(Pick, waitTime)){
         println(s"$me picks up right fork"); Pause
         println(s"$me eats"); Eat
-        leftDrop!(); Pause; rightDrop!(); Pause
+        left!Drop; Pause; right!Drop; Pause
         println(s"$me leaves")
       }
       else{
         println(s"$me fails to get right fork"); Pause
         // Pause for a random amount of time so that philosophers get out of
-        // sync.
-        leftDrop!(); Thread.sleep(200+Random.nextInt(200))
+        // sync.  A larger amount of randomness here means they get out of
+        // sync faster.
+        left!Drop; Thread.sleep(200+Random.nextInt(200))
         println(s"$me leaves")
       }
     }
   }
 
   /** A single fork. */
-  private def fork(me: Int, pick: PickChannel, drop: ?[Unit]) = proc("Fork"+me){
-    repeat{ pick?(); drop?() }
+  private def fork(me: Int, left: ?[Command], right: ?[Command])
+  = thread("Fork"+me){
+    serve(
+      left =?=> { x => assert(x == Pick); val y = left?(); assert(y == Drop) }
+      |
+      right =?=> { x => assert(x == Pick); val y = right?(); assert(y == Drop) }
+    )
   }
 
   /** The complete system. */
-  private def system: PROC = {
+  private def system: Computation = {
     // Channels to pick up and drop the forks, indexed by forks' identities
-    val pickChannels = Array.fill(N)(new PickChannel)
-    val dropChannels = Array.fill(N)(ManyOne[Unit]())
+    val philToLeftFork, philToRightFork = Array.fill(N)(new SyncChan[Command])
     val allPhils = || ( 
       for (i <- 0 until N)
-      yield phil(i, pickChannels(i), pickChannels((i+1)%N), 
-                 dropChannels(i), dropChannels((i+1)%N))
+      yield phil(i, philToLeftFork(i), philToRightFork(i))
     )
     val allForks = || ( 
-      for (i <- 0 until N) yield fork(i, pickChannels(i), dropChannels(i)) 
+      for (i <- 0 until N) yield 
+        fork(i, philToRightFork((i+1)%N), philToLeftFork(i))
     )
     allPhils || allForks
   }
 
   /** Run the system. */
-  def main(args : Array[String]) = { system() }
+  def main(args : Array[String]) = { run(system) }
 }
 
   

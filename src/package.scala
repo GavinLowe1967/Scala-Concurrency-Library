@@ -30,9 +30,9 @@ package object scl{
     catch{ case _: Stopped   => {}; case t: Throwable => throw t }
   }
 
-  /** Attempt to perform `body`; if that throws a `Stopped` exception, perform
+  /** Attempt to evaluate `body`; if that throws a `Stopped` exception, evaluate
     * `alternative`. */
-  @inline def attempt(body: => Unit)(alternative: => Unit): Unit = {
+  @inline def attempt[A](body: => A)(alternative: => A): A = {
     try{ body }
     catch{ case _: Stopped   => alternative; case t: Throwable => throw t }
   }
@@ -58,7 +58,7 @@ package object scl{
   /** Implicit conversion to allow a guard on a branch of an alt. 
     * 
     * Code adapted from Bernard Sufrin's CSO. */ 
-  implicit class GuardedIP(guard: => Boolean){
+  implicit class Guarded(guard: => Boolean){
     /** Add a guard to an InPort branch. */
     def &&[A](uipb: channel.UnguardedInPortBranch[A]) = 
       new channel.InPortBranch(() => guard, uipb.inPort, uipb.body)

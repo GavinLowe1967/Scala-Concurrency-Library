@@ -1,13 +1,18 @@
 package ox.scl.channel
 
 /** The sending end of a channel. */
-trait OutPort[A]{
+trait OutPort[A] extends Port{
   /** Send `x` on the channel. */
   def !(x: A): Unit
 
+  /** Try to send `x` within `millis` milliseconds.  
+    * @returns boolean indicating whether send successful. */
+  def sendBefore(millis: Long)(x: A): Boolean = 
+    sendBeforeNanos(millis*1_000_000)(x)
+
   /** Try to send `x` within `nanos` nanoseconds.  
     * @returns boolean indicating whether send successful. */
-  def sendBefore(x: A, nanos: Long): Boolean
+  def sendBeforeNanos(nanos: Long)(x: A): Boolean
 
   /** Close the channel for sending. */
   def closeOut(): Unit
@@ -21,8 +26,8 @@ trait OutPort[A]{
   /** Is the channel closed for output? */
   protected def isClosedOut: Boolean
 
-  /** Lock for controlling synchronisations. */
-  protected val lock: ox.scl.lock.Lock
+  // /** Lock for controlling synchronisations. */
+  // protected val lock: ox.scl.lock.Lock
 
   // ================================= Alts
 
@@ -30,8 +35,8 @@ trait OutPort[A]{
     * successful. */
   protected def trySend(value: () => A): Boolean
 
-  /** Can an alt register here? */
-  protected def canRegisterOut: Boolean
+  /** Check that an alt can register here, throwing an exception otherwise. */
+  protected def checkCanRegisterOut: Unit
 
   /* Code related to alts.  These make various assumptions concerning the
    * implementation of the subclasses, namely that they use lock, isClosedOut,
@@ -49,7 +54,7 @@ trait OutPort[A]{
   def registerOut(alt: AltT, index: Int, iter: Int, value: () => A) 
       : RegisterOutResult = lock.mutex{
     // println(s"registerOut($alt, $index, $iter)")
-    require(canRegisterOut) // In channel implementation
+    checkCanRegisterOut // In channel implementation
     if(isClosedOut) RegisterOutClosed
     else try{
       // Note: the channel might be closed while this thread is waiting in

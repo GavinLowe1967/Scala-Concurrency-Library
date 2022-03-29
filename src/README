@@ -4,15 +4,22 @@ Use buffered channels in Trapezium. -- done
 
 Examples from Interacting Peers. -- done
 
-Sorting practical
-
-Dining Philosophers practical: two parts done; need to do version with timeout.
+Dining Philosophers practical -- done
 
 Client-server examples -- done
 
 In linearizability testing and Log, check operating system if tsQueue
 
 Catch errors in threads -- done
+
+Sorting practical
+
+Prac 3
+
+Write up SCL for CSO
+
+Write up alt design
+
 
 -----------------
 
@@ -32,9 +39,9 @@ Alternation:
 
 - In channels, would it be better for sender to signal on slotEmptied?
 
-- Do final version of Dining Philosophers
+- Do final version of Dining Philosophers -- done
 
-- Do rest of datatypes
+- Do rest of datatypes -- done
 
 - Think about restrictions on usage: I think we can't have both ends of a
   SyncChan in alts, but it's ok with a BuffChan.  Do run-time tests for
@@ -52,7 +59,5 @@ false and notifyAll (publishes enabled, etc.), and then to wait for signal.
 
 Is it possible to implement SyncChan with less waiting?  Switch on who is
 there first.  Maybe separate locks for sending and receiving. 
-
-Extend channels with timed operations.
 
 Trim linearizability tester? 

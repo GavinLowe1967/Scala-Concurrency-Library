@@ -1,5 +1,16 @@
 package ox.scl.channel
 
+/* This file contains various traits and classes built upon in channel and alt
+ * implementations. */
+
+/** The base trait of a port. */
+trait Port{
+  /** Lock for controlling synchronisations. */
+  protected val lock: ox.scl.lock.Lock 
+}
+
+// ==================================================================
+
 /** Trait corresponding to the interface an alt presents to its branches and
   * ports. */
 trait AltT{
@@ -38,5 +49,4 @@ trait AtomicAltBranch extends AltBranch{
 /** The combination of two AltBranches. */
 class InfixAltBranch(left: AltBranch, right: AltBranch) extends AltBranch{
   private[scl] def unpack = left.unpack ++ right.unpack
-
 }

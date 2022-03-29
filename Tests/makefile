@@ -1,9 +1,15 @@
 DIR = ../tests
 
-BASIC_TESTSS = $(DIR)/Race2.class $(DIR)/Deadlock.class
+BASIC_TESTS = $(DIR)/Race2.class $(DIR)/Deadlock.class	\
+$(DIR)/ExceptionTest.class
 
-TESTS = $(BASIC_TESTS) $(DIR)/SyncChanTest.class $(DIR)/BuffChanTest.class	\
-$(DIR)/AltTest.class $(DIR)/TimeoutTest.class $(DIR)/ExceptionTest.class
+CHANNEL_TESTS = $(DIR)/SyncChanTest.class $(DIR)/BuffChanTest.class	\
+$(DIR)/TimeoutTest.class
+
+ALT_TESTS = $(DIR)/AltTest.class $(DIR)/AltSharedTest.class	\
+$(DIR)/AltDupTest.class
+
+TESTS = $(BASIC_TESTS) $(CHANNEL_TESTS) $(ALT_TESTS) 
 
 all:   $(TESTS)	 
 

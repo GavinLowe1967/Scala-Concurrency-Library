@@ -94,7 +94,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Try to send `x` within `nanos` nanoseconds.  
     * @returns boolean indicating whether send successful. */
-  def sendBefore(x: A, nanos: Long): Boolean = lock.mutex{
+  def sendBeforeNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos
     val timeout = !spaceAvailable.awaitNanos(nanos, length < size || isClosedOut)
                                         // wait for space, for at most nanos (1')
@@ -135,7 +135,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Try to receive within `nanos` nanoseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
-  def receiveBefore(nanos: Long): Option[A] = lock.mutex{
+  def receiveBeforeNanos(nanos: Long): Option[A] = lock.mutex{
     checkOpen
     val deadline = nanoTime+nanos
     if(length == 0) tryAltSend match{
@@ -159,9 +159,15 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   // Following might be too strict
 
   /** Can an alt register at the InPort? */
-  protected def canRegisterIn = receivingAlt == null && sendingAlt == null 
+  protected def checkCanRegisterIn = {
+    require(receivingAlt == null, s"Inport of channel used in two alts.")
+    require(sendingAlt == null, s"Both ports of channel used in alts.")
+  }
 
   /** Can an alt register at the OutPort? */
-  protected def canRegisterOut = receivingAlt == null && sendingAlt == null 
+  protected def checkCanRegisterOut = {
+    require(receivingAlt == null, s"Both ports of channel used in alts.")
+    require(sendingAlt == null, s"Outport of channel used in two alts.")
+  }
 
 }

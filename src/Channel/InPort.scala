@@ -1,13 +1,18 @@
 package ox.scl.channel
 
 /** The receiving end of a channel. */
-trait InPort[A]{
+trait InPort[A] extends Port{
   /** Receive on the inport. */
   def ?(u: Unit): A
 
+  /** Try to receive within `millis` milliseconds. 
+    * @return `Some(x)` if `x` received, otherwise `None`. */
+  def receiveBefore(millis: Long): Option[A] =
+    receiveBeforeNanos(millis*1_000_000)
+
   /** Try to receive within `nanos` nanoseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
-  def receiveBefore(nanos: Long): Option[A]
+  def receiveBeforeNanos(nanos: Long): Option[A]
 
   /** Close the channel for receiving. */
   def closeIn(): Unit
@@ -28,11 +33,11 @@ trait InPort[A]{
   /** Is the channel closed? */
   protected var isClosed = false
 
-  /** Can an alt register here? */
-  protected def canRegisterIn: Boolean
+  /** Check an alt can register here, throwing an exception otherwise. */
+  protected def checkCanRegisterIn: Unit
 
-  /** Lock for controlling synchronisations. */
-  protected val lock: ox.scl.lock.Lock 
+  // /** Lock for controlling synchronisations. */
+  // protected val lock: ox.scl.lock.Lock 
 
   // ================================= Alts
 
@@ -50,7 +55,7 @@ trait InPort[A]{
   private [channel] 
   def registerIn(alt: AltT, index: Int, iter: Int): RegisterInResult[A] 
   = lock.mutex{
-    require(canRegisterIn) // In channel implementation
+    checkCanRegisterIn // In channel implementation
     if(isClosed) RegisterInClosed
     else if(canReceive){
       val result = completeReceive()           // complete the receive

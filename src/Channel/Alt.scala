@@ -14,7 +14,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
    * the Alt waits.
    * 
    * 3. Call-backs: if a port becomes ready, it calls the `maybeReceive`
-   * function, which causes the main thread to be woken.  If a port of closed,
+   * function, which causes the main thread to be woken.  If a port is closed,
    * it calls the `portClosed` function; if subsequently no branch is
    * feasible, then the main port is again woken, and it throws an AltAbort.
    * 
@@ -40,6 +40,9 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
   /** Which branches are enabled? */
   private val enabled = new Array[Boolean](size)
 
+  /** The ports for each branch. */
+  private val ports = new Array[Port](size)
+
   /** How many branches are enabled? */
   private var numEnabled = 0
 
@@ -62,18 +65,19 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
       val i = (registerFirst+offset)%size
       branches(i) match{
         case ipb: InPortBranch[_] => 
-          if(ipb.guard()){
+          if(ipb.guard() && !alreadyRegistered(ipb.inPort, offset)){
             ipb.inPort.registerIn(this, i, iter) match{
               case RegisterInClosed => enabled(i) = false
               case RegisterInSuccess(x) => 
                 ipb.valueReceived = x; toRun = i; done = true
                 // println(s"Alt: success on inport registration $i $iter")
-              case RegisterInWaiting => enabled(i) = true; numEnabled += 1
+              case RegisterInWaiting => 
+                enabled(i) = true; numEnabled += 1; ports(i) = ipb.inPort
                 // println(s"Alt: failure on inport registration $i $iter");
             }
           }
         case opb: OutPortBranch[_] =>
-          if(opb.guard()){
+          if(opb.guard() && !alreadyRegistered(opb.outPort, offset)){
             opb.outPort.registerOut(this, i, iter, opb.value) match{
               case RegisterOutClosed => enabled(i) = false
               case RegisterOutSuccess => 
@@ -81,7 +85,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
                 toRun = i; done = true
               case RegisterOutWaiting => 
                 //println("Alt: unsuccessful registration $iter"); 
-                enabled(i) = true; numEnabled += 1
+                enabled(i) = true; numEnabled += 1; ports(i) = opb.outPort
             }
           }
       } // end of match
@@ -118,6 +122,17 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
       case opb: OutPortBranch[_] => opb.cont()
     }
     registerFirst = toRun+1 // First branch to register next time
+  }
+
+  /** Is port p already registered, within branches
+    * [registerFirst..registerFirst+n) (mod size)? */
+  private def alreadyRegistered(p: Port, n: Int): Boolean = {
+    var i = 0; var found = false
+    while(i < n && !found){
+      val j = (registerFirst+i)%size; i += 1
+      found = enabled(j) && ports(j) == p
+    }
+    found
   }
 
   // ================================= Call-backs from ports

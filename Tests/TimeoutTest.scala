@@ -38,13 +38,11 @@ object TimeoutTest{
   def mkChan[A: scala.reflect.ClassTag] = 
     if(buffered) new BuffChan[A](1) else new SyncChan[A]
 
-  // var sent: Array[Boolean] = null
-
   /** A sender that tries to send [0..iters) on c, with a timeout of Delay ms,
     * and records results in sent. */
   def senderTimeout(c: Chan[Int], sent: Array[Boolean]) = thread{
     for(i <- 0 until iters){
-      val success = c.sendBefore(i, Delay*1_000_000); sent(i) = success
+      val success = c.sendBefore(Delay)(i); sent(i) = success
       if(verbose) 
         if(success) println(s"sent $i") else println(s"failed to send $i")
     }
@@ -63,7 +61,7 @@ object TimeoutTest{
     var expected = 0; var steps = 0
     repeat{
       // sleep(Delay)
-      c.receiveBefore(Delay*1_000_000) match{
+      c.receiveBefore(Delay) match{
         case Some(x) =>
           assert(x == expected); expected += 1; 
           if(verbose) println(s"received $x")
@@ -209,7 +207,7 @@ object TimeoutTest{
     val received = new Array[Boolean](iters)
     def receiveTimeout(me: Int) = thread{
       repeat{
-        c.receiveBefore(Delay*1_000_000) match{
+        c.receiveBefore(Delay) match{
           case Some(x) => 
             if(verbose) println(s"$me received $x")
             synchronized{ assert(!received(x)); received(x) = true }

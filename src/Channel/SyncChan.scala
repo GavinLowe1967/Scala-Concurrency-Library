@@ -114,7 +114,7 @@ class SyncChan[A] extends Chan[A]{
 
   /** Try to send `x` within `nanos` nanoseconds.  
     * @returns boolean indicating whether send successful. */
-  def sendBefore(x: A, nanos: Long): Boolean = lock.mutex{
+  def sendBeforeNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos; // var timeout = false
     // Wait until !full || isClosed, but for at most nanos ns.
     val timeout = !slotEmptied.awaitNanos(nanos, !full || isClosed)
@@ -178,7 +178,7 @@ class SyncChan[A] extends Chan[A]{
 
   /** Try to receive within `nanos` nanoseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
-  def receiveBefore(nanos: Long): Option[A] = lock.mutex{
+  def receiveBeforeNanos(nanos: Long): Option[A] = lock.mutex{
     val deadline = nanoTime+nanos
     checkOpen
     // Try to receive from an alt first
@@ -202,10 +202,16 @@ class SyncChan[A] extends Chan[A]{
   // ======================================== Registration rules
 
   /** Can an alt register at the InPort? */
-  protected def canRegisterIn = receivingAlt == null && sendingAlt == null 
+  protected def checkCanRegisterIn = {
+    require(receivingAlt == null, s"Inport of channel used in two alts.")
+    require(sendingAlt == null, s"Both ports of channel used in alts.")
+  }
 
   /** Can an alt register at the OutPort? */
-  protected def canRegisterOut = receivingAlt == null && sendingAlt == null 
+  protected def checkCanRegisterOut = {
+    require(receivingAlt == null, s"Both ports of channel used in alts.")
+    require(sendingAlt == null, s"Outport of channel used in two alts.")
+  }
 
 }
 
