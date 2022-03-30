@@ -11,6 +11,7 @@ import java.lang.Thread.sleep
   * With an argument, it tests the use of fork.  A Stopped should be printed
   * and the system halted.  */
 object ExceptionTest{
+
   /** Throw a Stopped if flag, otherwise throw a NotImplementedError. */
   def t1(flag: Boolean) = thread{ 
     sleep(100); if(flag) throw(new Stopped) else ???; () 

@@ -9,7 +9,7 @@ $(DIR)/TimeoutTest.class
 ALT_TESTS = $(DIR)/AltTest.class $(DIR)/AltSharedTest.class	\
 $(DIR)/AltDupTest.class
 
-TESTS = $(BASIC_TESTS) $(CHANNEL_TESTS) $(ALT_TESTS) 
+TESTS = $(BASIC_TESTS) $(CHANNEL_TESTS) $(ALT_TESTS) $(DIR)/BarrierTest.class
 
 all:   $(TESTS)	 
 

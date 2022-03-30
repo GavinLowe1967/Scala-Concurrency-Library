@@ -42,22 +42,6 @@ package object scl{
   /** Implicit conversion to allow a guard on a branch of an alt. 
     * 
     * Code adapted from Bernard Sufrin's CSO. */ 
-/*
-  implicit class Guarded(guard: => Boolean){
-    @deprecated("CSO-style bracketing of guard and InPort is unnecessary")
-    def &&[T](port: channel.InPort[T]) =
-      new channel.GuardedInPort[T](() => guard, port)
-    /*
-    def &&[T](port: alternation.channel.OutPort[T]) = 
-      new alternation.channel.GuardedOutPort[T](()=>guard, port)
-    def &&[T](chan: alternation.channel.Chan[T])    = 
-      new alternation.channel.GuardedChan[T](()=>guard, chan) */
-  }
- */
-
-  /** Implicit conversion to allow a guard on a branch of an alt. 
-    * 
-    * Code adapted from Bernard Sufrin's CSO. */ 
   implicit class Guarded(guard: => Boolean){
     /** Add a guard to an InPort branch. */
     def &&[A](uipb: channel.UnguardedInPortBranch[A]) = 
@@ -72,6 +56,7 @@ package object scl{
   def alt(body: channel.AltBranch) = 
     new channel.Alt(body.unpack.toArray)()
 
+  /** Construct a `serve` from `branches`. */
   def serve(body: channel.AltBranch) =
     new channel.Alt(body.unpack.toArray).repeat
 
@@ -82,6 +67,7 @@ package object scl{
   type Lock = lock.Lock
   type MutexSemaphore = lock.MutexSemaphore
   type SignallingSemaphore = lock.SignallingSemaphore
+  type Barrier = lock.Barrier
 
   // Channels
   type Chan[A] = channel.Chan[A]

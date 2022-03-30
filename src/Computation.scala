@@ -6,20 +6,38 @@ package ox.scl
 class Computation(private val comps: List[(String, Unit => Unit)]){
   private val p = comps.length
 
-  /** A class encapsulating a thread with name `name` that performs `comp`.  Any
-    * non-stopped Throwable is printed.  Any Stopped exception is stored in
-    * `thrown`.  Any other exception is printed and the system halted. */  
+  /** A class encapsulating a thread with name `name` that performs `comp`.  If
+    * an exception is thrown, all peers are interrupted, and the exception is
+    * stored in `thrown`.  */  
   private class ThreadObject(name: String, comp: Unit => Unit){
-    var thrown: Stopped = null
+    /** The exception thrown, if any. */
+    var thrown: Throwable = null
+
+    private val thisTO = this
+
+    /** The java.lang.Thread to run. */
     val thread: java.lang.Thread = new java.lang.Thread(new Runnable{ 
       def run = try{ comp(()) } catch{ 
-        case th: Stopped => thrown = th // just store
+        case _: InterruptedException => {} // Interrupted by another thread
+        case st: Stopped => thrown = st // just store
         case th: Throwable => 
-          println(s"Thread ${thread.getName} terminated by throwing")
-          th.printStackTrace(); sys.exit
+          for(to <- peers) if(to != thisTO) to.thread.interrupt// interrupt peers
+          thrown = th
+        // case th: Throwable => 
+        //   println(s"Thread ${thread.getName} terminated by throwing")
+        //   th.printStackTrace(); sys.exit
       }
     })
+
     if(name != null) thread.setName(name)
+
+    /** The threads running in the same parallel composition as this. */
+    private var peers: List[ThreadObject] = null
+
+    /** Run this as part of the parallel composition with peers. */
+    def runWith(peers: List[ThreadObject]) = {
+      this.peers = peers; thread.start
+    }
   }
 
   /** Run the threads. 
@@ -34,11 +52,20 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
     threads.foreach(_.start)
     threads.foreach(_.join)
  */
-    val threads = comps.map { case (name, comp) => new ThreadObject(name, comp) }
-    threads.foreach(_.thread.start)
+    val threads = comps.map{ case (name, comp) => new ThreadObject(name, comp) }
+    // threads.foreach(_.peers = threads)
+    // threads.foreach(_.thread.start)
+    threads.foreach(_.runWith(threads))
     threads.foreach(_.thread.join)
-    // Check if any thread threw a Stopped exception: if so, re-throw it.
-    for(thread <- threads) if(thread.thrown != null) throw(thread.thrown)
+    // Check if any thread threw an exception: if so, re-throw it,
+    // prioritising non-Stopped exceptions.
+    var stopped: Stopped = null
+    for(thread <- threads) thread.thrown match{
+      case st: Stopped => stopped = st
+      case null => {}
+      case thrown: Throwable => throw thrown
+    }
+    if(stopped != null) throw stopped
   }
 
   /** Create a thread with name `name` that performs `comp`, where `threadInfo`

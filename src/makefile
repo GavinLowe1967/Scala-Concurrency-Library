@@ -11,6 +11,9 @@ clean:
 
 LOCKDIR = $(DIR)/lock
 
+LOCK_CPTS = $(LOCKDIR)/Barrier.class $(LOCKDIR)/Semaphore.class	\
+$(LOCKDIR)/Lock.class
+
 ##### Channels
 
 CHANDIR = $(DIR)/channel
@@ -84,7 +87,7 @@ DEBUGDIR = $(DIR)/debug
 
 ##### Complete package
 
-$(DIR)/package.class: $(DIR)/Computation.class $(CHANNELS) $(DEBUGDIR)/Log.class $(LOCKDIR)/Semaphore.class $(TESTING_SOLVERS) $(CHANDIR)/Alt.class
+$(DIR)/package.class: $(DIR)/Computation.class $(CHANNELS) $(DEBUGDIR)/Log.class $(LOCK_CPTS) $(TESTING_SOLVERS) $(CHANDIR)/Alt.class
 
 ##### Recipes
 

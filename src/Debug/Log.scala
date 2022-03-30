@@ -91,6 +91,7 @@ class Log[A: scala.reflect.ClassTag](p: Int, mask: Int = 0xFFFFFFFF)
 // =======================================================
 
 object Log{
+  /** Has checkOS been called previously? */
   private var givenWarning = false
 
   /** Give a warning if the operating system is a variant of Windows.  Called
@@ -98,7 +99,7 @@ object Log{
   def checkOS = if(!givenWarning){
     val osName = System.getProperty("os.name").map(_.toLower)
     val pattern = "windows"
-    println(osName)
+    // println(osName)
     var i = 0; var found = false
     while(i+pattern.length <= osName.length && !found){
       // Test if pattern appears in osName starting from index i
@@ -107,14 +108,12 @@ object Log{
       while(j < pattern.length && osName(i+j) == pattern(j)) j += 1
       found = j == pattern.length; i += 1
     }
-    if(found){
-      println(
-        "Warning: You seem to be running a version of Windows.  However,\n"+
-          "objects from debug.Log may not work correctly on such operating\n"+
-          "systems, because of the timestamping mechanism.  It is recommended\n"+
-          "that you use an instance of debug.SharedLog instead.")
-      givenWarning = true
-    }
+    if(found) println(
+      "Warning: You seem to be running a version of Windows.  However,\n"+
+        "objects from debug.Log may not work correctly on such operating\n"+
+        "systems, because of the timestamping mechanism.  It is recommended\n"+
+        "that you use an instance of debug.SharedLog instead.")
+    givenWarning = true
   }
 }
 
