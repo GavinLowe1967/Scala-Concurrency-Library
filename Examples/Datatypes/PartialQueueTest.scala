@@ -21,9 +21,9 @@ object PartialQueueTest{
     for(i <- 0 until iters){
       if(me%2 == 0){
         val x = random.nextInt(MaxVal)
-        log.log(_.enqueue(x), "enqueue("+x+")", seqEnqueue(x))
+        log(_.enqueue(x), "enqueue("+x+")", seqEnqueue(x))
       }
-      else log.log(_.dequeue, "dequeue", seqDequeue)
+      else log(_.dequeue, "dequeue", seqDequeue)
     }
   }
 

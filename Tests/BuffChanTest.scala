@@ -25,9 +25,9 @@ object BuffChanTest{
     for(i <- 0 until iters){
       if(me%2 == 0){
         val x = random.nextInt(MaxVal)
-        log.log(_!x, "send("+x+")", seqSend(x))
+        log(_!x, "send("+x+")", seqSend(x))
       }
-      else log.log(_?(), "receive", seqReceive)
+      else log(_?(), "receive", seqReceive)
     }
   }
 
@@ -44,8 +44,8 @@ object BuffChanTest{
 
     for(r <- 0 until reps){
       val concChan = new BuffChan[Int](size); val seqChan = Queue[Int]()
-      val tester = LinearizabilityTester[SeqChan,ConcChan](
-        seqChan, concChan, p, worker _)
+      val tester =
+        LinearizabilityTester[SeqChan,ConcChan](seqChan, concChan, p, worker _)
       assert(tester() > 0)
       if(r%50 == 0) print(".")
     } // end of for loop

@@ -18,14 +18,14 @@ object AltDupTest{
       | l =?=> { x => out!(1, x) }
     )
     // println("tagger closed")
-    l .closeIn; out.closeOut
+    l .close; out.closeOut
   }
 
   /** Sender that sends [0..N) on c. */
   def sender(c: Chan[Int]) = thread(s"sender $c"){ 
     var i = 0
     repeat(i < N){ Thread.sleep(Random.nextInt(3)); c!i; i += 1 }
-    c.closeIn
+    c.close
   }
 
   def receiver(out: ?[(Int,Int)]) = thread("receiver"){

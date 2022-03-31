@@ -124,11 +124,11 @@ object Buff2Test{
     for(i <- 0 until iters){
       if(me%2 == 0){
         val x = i /*random.nextInt(MaxVal)*/; //println(s"Thread $me sending $x")
-        log.log(_.send(x), "send("+x+")", seqSend(x))
+        log(_.send(x), "send("+x+")", seqSend(x))
       }
       else{
         //println(s"Thread $me trying to receive")
-        log.log(_.receive, "receive", seqReceive)
+        log(_.receive, "receive", seqReceive)
       }
     }
     //println(s"$me done")

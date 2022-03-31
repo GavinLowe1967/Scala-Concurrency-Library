@@ -11,6 +11,12 @@ trait Port{
 
 // ==================================================================
 
+/** Exception thrown if a communication is attempted on a channel that is
+  * closed. */
+class Closed extends ox.scl.Stopped
+
+// ==================================================================
+
 /** Trait corresponding to the interface an alt presents to its branches and
   * ports. */
 trait AltT{

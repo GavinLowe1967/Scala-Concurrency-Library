@@ -12,15 +12,39 @@ Catch errors in threads -- done
 
 Sorting practical -- done
 
+Get rid of closeIn? -- done
+
+Barrier synchronisation examples -- done
+
+Replace closeOut by endOfStream? 
+
 In linearizability testing and Log, check operating system if tsQueue
 
-Prac 3
-
-Write up SCL for CSO
+Write up SCL for CSO -- done, I think
 
 Write up alt design
 
-Get rid of closeIn?
+Remaining examples
+==================
+
+Trapezium with buffered channels
+
+Trapezium experiment
+
+Prac 3 (DFS)
+
+JVM Monitors examples
+
+SCL Monitors examples
+
+Patterns examples
+
+Semaphores examples
+
+Prac 4
+
+Exercises
+
 
 -----------------
 
@@ -46,7 +70,7 @@ Alternation:
 
 - Think about restrictions on usage: I think we can't have both ends of a
   SyncChan in alts, but it's ok with a BuffChan.  Do run-time tests for
-  enforcement.
+  enforcement. -- done, but restrictions could be relaxed. 
 
 - Pass channels by name, not value -- that's far from easy!
 

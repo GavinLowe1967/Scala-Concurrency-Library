@@ -11,7 +11,7 @@ object Sorting{
       run(thread{ x0 = in0?() } || thread{ x1 = in1?() })
       run(thread{ out0!(x0 min x1) } || thread{ out1!(x0 max x1) })
     }
-    in0.closeIn; in1.closeIn; out0.closeOut; out1.closeOut
+    in0.close; in1.close; out0.closeOut; out1.closeOut
   }
 
   /** A sorting network for four values. */
@@ -199,7 +199,7 @@ object SortingTest{
     assert(ysSorted.sameElements(zs),
            "Inputs: "+ys.mkString(", ")+"\nExpected: "+ysSorted.mkString(", ")+
              "\nReceived: "+zs.mkString(", "))
-    chans.foreach(_.closeIn)
+    chans.foreach(_.close)
   }
 
   /** Run a single test on sorter.  

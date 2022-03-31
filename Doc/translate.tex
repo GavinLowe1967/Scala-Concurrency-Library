@@ -3,6 +3,7 @@
 % \advance\leftmargin by -20mm
 \advance\oddsidemargin by -15mm
 \advance\evensidemargin by -15mm
+\sloppy
 
 \title{SCL for CSO Programmers}
 \author{Gavin Lowe}
@@ -10,9 +11,12 @@
 
 \newenvironment{compare}{%
   \begin{center}
-  \begin{tabular}{\|p{0.2\textwidth}p{0.2\textwidth}p{0.50\textwidth}\|}
+    \def\arraystretch{1.2}
+  \begin{tabular}{\|p{0.22\textwidth}p{0.22\textwidth}p{0.48\textwidth}\|}
   \hline SCL syntax & CSO syntax & Comments  \\  \hline}
 {\\ \hline\end{tabular}\end{center}}
+
+\def\gap{\hspace*{3mm}}
 
 \begin{document}
 \maketitle
@@ -22,18 +26,19 @@ with CSO (Concurrent Scala Objects).
 
 SCL is heavily influenced by Bernard Sufrin's CSO\@.  Most of the names of
 classes and functions are unchanged.  However, a few changes have been made,
-for example to provide a simpler interface.
+for example to provide a simpler interface.  
 
-Philosophy.
-
-SCL makes much less use of factory methods than CSO.
+The emphasis in SCL is on pedagogy, rather that out-and-out performance.
+SCL aims to provide a fairly minimal interface, essentially just enough for
+the Concurrent Programming course.  In particular, SCL makes much less use of
+factory methods than CSO.
 
 %%%%%
 
 \subsection*{Computations}
 
 In SCL, the basic unit of a computation is a \emph{thread} of type |Thread|.
-The declaration \SCALA{thread\{ comp \}} creates a computation that when run
+The declaration \SCALA{thread\{ comp \}} creates a computation that, when run,
 executes |comp|.
 
 A \emph{computation} of type |Computation| represents the parallel composition
@@ -46,17 +51,24 @@ CSO, computations can be combined in parallel using \SCALA{\|\|}.
 |Thread| & |PROC| & Type of a thread.  \\
 |Computation| & |PROC| & Type of a collection of threads. \\
 \SCALA{p \|\| q} & \SCALA{p \|\| q} & Parallel composition of |p| and |q|. \\
-\SCALA{\|\| ps} & \SCALA{\|\| ps} & Parallel composition of the collection of
+\SCALA{\|\| (ps)} & \SCALA{\|\| (ps)} & Parallel composition of the collection of
 |Computation|s |ps|.  \\
-|run(p)| & |run(p)| or |p()| & Execute the threads |p|. \\
-|fork(p)| & |p.fork| & Executes |p| in a new JVM thread.
+|run(p)| or |p.run| & |run(p)| or |p()| & Execute the threads |p|. \\
+|fork(p)| or |p.fork| & |p.fork| & Executes |p| in a new JVM thread.
 \end{compare}
 
-Exceptions are treated slightly differently from in CSO\@.  When |run| is used,
-if a thread throws a |Stopped| exception, then that is caught and re-thrown
-when the computation ends; if any other sort of exception is thrown, that
-halts the program immediately.  When |fork| is used, if a thread throws any
-exception, that halts the program immediately.
+Exceptions are treated slightly differently from in CSO\@.  When |run| is
+used, if a thread throws a non-|Stopped| exception, then it is caught, all the
+other threads in the computation are interrupted, and the exception is
+re-thrown.  If a thread throws a |Stopped| exception, then all the other
+threads in the computation are allowed to terminate, at which point the
+|Stopped| exception is re-thrown.  When |fork| is used, if any exception is
+thrown, the program exits. 
+
+%% that is caught and re-thrown
+%% when the computation ends; if any other sort of exception is thrown, that
+%% halts the program immediately.  When |fork| is used, if a thread throws any
+%% exception, that halts the program immediately.
 
 %% within a parallel composition throws an exception, the exception is printed
 %% and the program exits.
@@ -77,45 +89,44 @@ As with CSO, a channel comprises an |Inport| and an |OutPort|.  The syntax for
 standard sends and receives is unchanged.  The syntax for time-bounded sends
 and receives is changed slightly (see below).  
 
-The syntax for closing channels
-is mostly unchanged, except the |closeIn| operation has been removed (it was
-equivalent to |close|).  
-
-*** Not true!
-
-In addition, a |reopen| operation has been added to
-re-open a closed channel. 
+The syntax for closing channels is mostly unchanged, except the |closeIn|
+operation has been removed (it was equivalent to |close|).  In addition, a
+|reopen| operation has been added to re-open a closed channel.
 
 
 \begin{compare}
-|SyncChan[A]| & 
-  \raggedright |OneOne[A]|, |OneMany[A]|, |ManyOne[A]|, |ManyMany[A]|, |N2N[A]| &
-   Types of synchronous channels \\
-|BuffChan[A| & 
-  \raggedright |OneOneBuf[A]|, |ManyManyBuf[A]|, |N2NBuf[A]| &
-   Types of buffered channels. \\
-|c?()| & |c?()| & Receive from |InPort| |c|. \\
-|c!x| & |c!x| & Send |x| on |OutPort| |c|. \\
-|c.close| & |c.close|, |c.closeIn| & Fully close the channel. \\
-|c.closeOut| & |c.closeOut| & Close the channel for sending. \\
-|c.reopen| & --- & Reopen the channel. \\
-|c.receiveWithin| \hspace*{3mm}|(millis)| & |c.readBefore(nanos)| & 
-Receive from |c|, or timeout
-after |millis|~ms\slash |nanos| ns, returning an |Option| value. \\
-|c.sendWithin| \hspace*{3mm}|(millis)(x)| & 
-  |c.writeBefore| \hspace*{3mm}|(nanos)(x)| &
-Send |x| on |c|, or timeout
+|new SyncChan[A]| & 
+  \raggedright |OneOne[A]()|, |OneMany[A]()|, |ManyOne[A]()|, |ManyMany[A]()|,
+    |N2N[A](m,n)| &
+   Creation of synchronous channel. \\
+|new BuffChan[A](size)| & 
+  \raggedright |OneOneBuf[A](size)|, |ManyManyBuf[A](size)|, 
+  |N2NBuf[A](m,n,size)| &
+   Creation of buffered channel with capacity |size|. \\
+|in?()| & |in?()| & Receive from |InPort| |in|. \\
+|out!x| & |out!x| & Send |x| on |OutPort| |out|. \\
+|c.close|, |in.close| & |c.close|, |in.closeIn| & 
+Fully close the channel. \\
+|out.closeOut| & |out.closeOut| & Close the channel for sending, normally
+signalling the end of the stream. \\
+|c.reopen| & --- & Re-open the channel. 
+\\
+|in.receiveWithin| \gap|(millis)| & |in.readBefore(nanos)| & 
+Receive from |in|, or timeout
+after |millis|~ms\slash |nanos| ns, returning an |Option| value. 
+\\
+|out.sendWithin| \gap|(millis)(x)| &  |out.writeBefore| \gap|(nanos)(x)| &
+Send |x| on |out|, or timeout
 after |millis|~ms\slash |nanos| ns, returning a boolean value.
 \end{compare}
-
 
 %%%%%
 
 \subsection*{Alternation}
 
-The syntax for alternation (|alt| and |serve|) is largely unchanged.
-Parentheses should not be placed around the guard and port.  The following
-example (a two-place buffer) illustrates most of the syntax.
+The syntax for alternation (|alt| and |serve|) is largely unchanged.  Unlike
+CSO, parentheses should \emph{not} be placed around the guard and port.  The
+following example (a two-place buffer) illustrates most of the syntax.
 %
 \begin{scala}
   var x = -1; var empty = true
@@ -132,31 +143,135 @@ simultaneously enabled in several branches of the same alt (all but one
 instance will be ignored). However, the following restrictions remain:
 %
 \begin{itemize}
-\item A port cannot be simultaneously enabled in two alts.  This restriction
+\item A port may not be simultaneously enabled in two alts.  This restriction
   could be removed without too much difficulty.
 
-\item A channel may not have both of its port used simultaneously in alts.
+\item A channel may not have both of its ports simultaneously enabled in alts.
   This restriction is fairly necessary for synchronous channels, but, I think,
   unnecessary for buffered channels.
 \end{itemize}
-% 
 
 As with CSO, the expressions defining the ports are evaluated \emph{once} when
 a |serve| is created, and not subsequently re-evaluated. 
 
 %%%%%
 
-\subsection*{Monitors}
+\subsection*{Monitors/locks}
+
+JVM monitors are outside CSO/SCL, so are unchanged.
+
+In SCL, the class |Monitor| is replaced by a class |Lock|, although each
+|Lock| supports the functionality of a CSO |Monitor|.  A |Lock| can be
+acquired or released.  A computation can be protected by a |Lock| using
+\SCALA{lock.mutex\{comp\}}: this ensures |comp| is executed under mutual
+exclusion on the lock.  
+
+Conditions can be created, associated with a |Lock|, and used as with CSO. 
+
+\begin{compare}
+|new Lock| & |new Monitor| & Creation of lock or monitor. \\
+|lock.acquire| & --- & Acquire the lock. \\
+|lock.release| & --- & Release the lock. \\
+\SCALA{lock.mutex\{comp\}} & 
+\SCALA{monitor.withLock\{} \gap\SCALA{comp\}} & 
+Execute |comp| under mutual exclusion on the lock/monitor. \\
+|lock.newCondition| & |monitor.newCondition| & 
+Obtain a new condition on the lock/monitor. \\
+|cond.await| & |cond.await| & Wait for a signal on |cond|. \\
+|cond.await(test)| & |cond.await(test)| & 
+Wait for |test| to become true, rechecking when a signal on |cond| is
+received. \\ 
+|cond.signal| & |cond.signal| & Send a signal to a thread waiting on
+|cond|. \\
+|cond.signalAll| & |cond.signalAll| & Send a signal to each thread waiting on
+|cond|. 
+\end{compare}
 
 
 %%%%%
 
-\subsection*{Other}
+\subsection*{Barrier synchronisations}
 
-Barrier synchronisations
+The implementation of a barrier for $n$ threads runs in time $O(\log n)$
+(whereas the CSO implementation was $O(n)$).  The downside of this is that
+each call to |sync| requires an identity parameter in the range $[0..n)$, with
+  different threads providing different identities.    
 
-Semaphores.
+Combining barriers, unlike with CSO, do not require the starting value for the
+accumulation. 
 
-Linearizability testing
+\begin{compare}
+|new Barrier(n)| & |new Barrier(n)| & 
+  Creation of barrier object for |n| threads. \\
+|barrier.sync(me)| & |barrier.sync| & 
+  Synchronisation (by thread with identity |me|). \\
+|new Combining|\-\gap|Barrier(n, f)| & |new Combining|\-\gap|Barrier(n, f, e)| &
+  Creation of combining barrier for |n| threads, with combining function~|f|
+  (and starting value~|e|). \\
+|barrier.sync(me, x)| & |barrier.sync(x)| & 
+  Synchronisation (by thread with identity~|me|) providing input~|x|. \\
+|new AndBarrier(n)| & |new lock.AndBarrier(n)| & 
+  Creation of conjunctive combining barrier. \\
+|new OrBarrier(n)| & |new lock.OrBarrier(n)| & 
+  Creation of disjunctive combining barrier.
+\end{compare}
 
+%%%%%
+
+\subsection*{Semaphores}
+
+Semaphores in SCL are very similar to as in CSO\.  An exception is that the
+|up| operation \emph{requires} that the semaphore is in the down state (a call
+of |up| when the semaphore is already up is normally a programming error).  
+
+\begin{compare}
+|new Semaphore(isUp)| & |Semaphore(isUp)| & Creation of semaphore with state
+given by |isUp|. 
+\\
+|new MutexSemaphore| & |MutexSemaphore()| & Creation of semaphore in the up
+state, e.g.~for mutual exclusion. 
+\\
+|new Signalling|\-\gap|Semaphore| & |SignallingSemaphore()|  & 
+Creation of semaphore in the down state, e.g.~for signalling. 
+\\
+|sem.up| & |sem.up| & Raise the semaphore. 
+\\
+|sem.down| & |sem.down| & Lower the semaphore.
+\end{compare}
+
+\subsection*{Linearizability testing}
+
+The linearizability testing framework is incorporated within SCL\@.  (It was a
+separate package from CSO\@.)  The interface has been slightly simplified from
+previously. 
+
+Each worker operating on the concrete datatype should have signature 
+%
+\begin{scala}
+  def worker(me: Int, log: LinearizabilityLog[S, C]) = ...
+\end{scala}
+%
+where |S| is the type of the sequential specification object, and |C| is the
+type of the concurrent object being tested.  Each worker performs and logs
+operations using commands of the form
+%
+\begin{scala}
+  log(concOp, string, seqOp)
+\end{scala}
+%
+where |concOp: C => A| is the operation performed on the concurrent object,
+|seqOp: S => (A,S)| is the corresponding operation on the specification
+object, and |string| is a |String| that describes the operation (with
+different strings for semantically different operations).
+
+The linearizability tester is created and run using commands of the form
+%
+\begin{scala}
+  val tester = LinearizabilityTester[S,C](seqObj, concObj, p, worker _)
+  assert(tester() > 0)
+\end{scala}
+%
+where |seqObj| is the sequential specification object, |concObj| is the
+concurrent object being tested, |p| is the number of workers to run, and
+|worker| is as above. 
 \end{document}

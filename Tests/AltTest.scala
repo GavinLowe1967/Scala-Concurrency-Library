@@ -15,7 +15,7 @@ object AltTest{
         /*println(s"received $x on r");*/ out!(1, x) }
     )
     // println("tagger closed")
-    l .closeIn; r.closeIn; out.closeOut
+    l .close; r.close; out.closeOut
   }
 
   /** Number of values sent on each channel per test. */
@@ -27,7 +27,7 @@ object AltTest{
     repeat(i < N){ Thread.sleep(Random.nextInt(2)); c!i; i += 1 }
     // println(s"sender $c done")
     Thread.sleep(Random.nextInt(2))
-    c.closeIn
+    c.close
   }
     
   def receiver(out: ?[(Int,Int)]) = thread("receiver"){

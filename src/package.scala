@@ -63,11 +63,14 @@ package object scl{
   // =======================================================
   /* Make various classes available without full qualification. */
 
-  // Locks
+  // Locks, semaphores and barriers
   type Lock = lock.Lock
   type MutexSemaphore = lock.MutexSemaphore
   type SignallingSemaphore = lock.SignallingSemaphore
   type Barrier = lock.Barrier
+  type CombiningBarrier[A] = lock.CombiningBarrier[A]
+  type AndBarrier = lock.AndBarrier
+  type OrBarrier = lock.OrBarrier
 
   // Channels
   type Chan[A] = channel.Chan[A]

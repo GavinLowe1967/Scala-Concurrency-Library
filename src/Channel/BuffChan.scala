@@ -41,7 +41,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   }
 
   /** Close the channel for receiving.  This completely closes the channel. */
-  def closeIn(): Unit = close()
+  // def closeIn(): Unit = close()
 
   /** Close the channel for sending. */
   def closeOut(): Unit = lock.mutex{

@@ -24,9 +24,9 @@ object QueueTest{
       // println(s"$me: $i")
       if(random.nextFloat <= enqueueProb){
         val x = random.nextInt(MaxVal)
-        log.log(_.enqueue(x), "enqueue("+x+")", seqEnqueue(x))
+        log(_.enqueue(x), "enqueue("+x+")", seqEnqueue(x))
       }
-      else log.log(_.dequeue, "dequeue", seqDequeue)
+      else log(_.dequeue, "dequeue", seqDequeue)
   }
 
   def main(args: Array[String]) = {

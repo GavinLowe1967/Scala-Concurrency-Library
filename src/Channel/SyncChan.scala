@@ -38,7 +38,7 @@ class SyncChan[A] extends Chan[A]{
   }
 
   /** Close the channel for receiving: this closes the whole channel. */
-  def closeIn() = close()
+  // def closeIn() = close()
 
   /** Close the channel for sending: this closes the whole channel. */
   def closeOut() = close()

@@ -3,6 +3,8 @@ package ox.scl.lock
 /** A barrier synchronisation to be used by `n` threads.  The threads must
   * have distinct identities in the range [0..`n`). */
 class Barrier(n: Int){
+  /* The threads are logically arranged into a binary heap. */
+
   /** An object for signalling between a child and its parent in the heap. */
   private class Signal{
     /** The state of this object.  true represents that the child has signalled,

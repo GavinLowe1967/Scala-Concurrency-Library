@@ -7,8 +7,9 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
   private val p = comps.length
 
   /** A class encapsulating a thread with name `name` that performs `comp`.  If
-    * an exception is thrown, all peers are interrupted, and the exception is
-    * stored in `thrown`.  */  
+    * a non-Stopped exception is thrown, all peers are interrupted, and the
+    * exception is stored in `thrown`.  If a Stopped exception is thrown, it
+    * is stored in `thrown`.  */  
   private class ThreadObject(name: String, comp: Unit => Unit){
     /** The exception thrown, if any. */
     var thrown: Throwable = null
@@ -23,9 +24,6 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
         case th: Throwable => 
           for(to <- peers) if(to != thisTO) to.thread.interrupt// interrupt peers
           thrown = th
-        // case th: Throwable => 
-        //   println(s"Thread ${thread.getName} terminated by throwing")
-        //   th.printStackTrace(); sys.exit
       }
     })
 
@@ -47,14 +45,7 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
     * terminates.  Otherwise, if any thread throws a Stopped exception, that
     * gets thrown when the parallel composition terminates.  */
   def run = {
-    /*
-    val threads = comps.map(mkThread)
-    threads.foreach(_.start)
-    threads.foreach(_.join)
- */
     val threads = comps.map{ case (name, comp) => new ThreadObject(name, comp) }
-    // threads.foreach(_.peers = threads)
-    // threads.foreach(_.thread.start)
     threads.foreach(_.runWith(threads))
     threads.foreach(_.thread.join)
     // Check if any thread threw an exception: if so, re-throw it,
@@ -77,7 +68,7 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
     val thread = new java.lang.Thread(new Runnable{ 
       def run = {
         try{ comp(()) } catch {
-          case thrown: Throwable =>
+          case thrown: Throwable  =>
             println(s"Thread ${name} terminated by throwing:")
             thrown.printStackTrace(); sys.exit
         }
@@ -89,7 +80,21 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
 
   /** Fork off a machine thread to execute the threads.  If any thread throws an
     * exception, that halts the program. */
-  def fork =  comps.foreach(mkThread(_).start)
+  def fork = { // comps.foreach(mkThread(_).start)
+    for((name,comp) <- comps){
+      val thread = new java.lang.Thread(new Runnable{ 
+        def run = {
+          try{ comp(()) } catch {
+            case thrown: Throwable  =>
+              println(s"Thread ${name} terminated by throwing:")
+              thrown.printStackTrace(); sys.exit
+          }
+        }
+      })
+      if(name != null) thread.setName(name)
+      thread.start
+    }
+  }
 
   /** Create the parallel composition of this with `that`. */
   def || (that: Computation) = new Computation(comps ++ that.comps)

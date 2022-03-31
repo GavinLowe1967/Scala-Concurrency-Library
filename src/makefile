@@ -7,12 +7,16 @@ all:   $(DIR)/package.class
 clean:
 	rm $(DIR)/*.class $(DIR)/*/*.class; fsc -shutdown
 
+##### Top-level
+
+$(DIR)/Computation.class: $(DIR)/Stopped.class
+
 ##### Locks
 
 LOCKDIR = $(DIR)/lock
 
-LOCK_CPTS = $(LOCKDIR)/Barrier.class $(LOCKDIR)/Semaphore.class	\
-$(LOCKDIR)/Lock.class
+LOCK_CPTS = $(LOCKDIR)/Barrier.class $(LOCKDIR)/CombiningBarrier.class	\
+$(LOCKDIR)/Semaphore.class $(LOCKDIR)/Lock.class
 
 ##### Channels
 

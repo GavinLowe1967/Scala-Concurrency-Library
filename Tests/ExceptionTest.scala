@@ -13,25 +13,32 @@ import java.lang.Thread.sleep
 object ExceptionTest{
 
   /** Throw a Stopped if flag, otherwise throw a NotImplementedError. */
-  def t1(flag: Boolean) = thread{ 
+  def t1(flag: Boolean) = thread("t1"){ 
     sleep(100); if(flag) throw(new Stopped) else ???; () 
   }
 
-  def t2 = thread{ for (i <- 0 to 4){ println(i); sleep(50) } }
+  def t2(id: Int) = thread(s"t2($id)"){ 
+    for (i <- 0 to 4){ println(s"$id: $i"); sleep(50) } 
+  }
 
   def runTest = {
-    // In following, Stopped exception should be caught. 
-    attempt{ run(t1(true) || t2) }{ println("Stopped caught") }
-    // In following, NotImplementedError should be printed leading to
-    // termination
-    run(t1(false) || t2) 
-    // Following should not be reached.
-    assert(false, "unreachable")
+    // In following, Stopped exception should be caught after t2(1) finishes.
+    attempt{ run(t1(true) || t2(1)) }{ println("Stopped caught") }
+
+    // In following, t2(3) should be interrupted, and the NotImplementedError
+    // should be caught; t2(2) should continue to run.
+    fork(t2(2))
+    try{ run(t1(false) || t2(3)) }
+    catch{ case _: NotImplementedError => println("NotImplementedError caught") }
   }
 
   def forkTest = {
-    fork(t1(true) || t2)
-    run(t2)
+    // Both t2(1) and t2(2) should be halted, and the program should halt. 
+    try{
+      fork(t1(true) || t2(1))
+      run(t2(2))
+    }
+    catch{ case _: Throwable => println("This shouldn't happen") }
     assert(false, "unreachable")
   }
 

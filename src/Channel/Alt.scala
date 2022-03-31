@@ -203,5 +203,9 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
   }
 
   /** Run this repeatedly. */
-  private[scl] def repeat = ox.scl.repeat{ apply(); reset } 
+  private[scl] def repeat = {
+    try{ while(true){ apply(); reset } }
+    catch{ case _: ox.scl.Stopped   => {}; case t: Throwable => throw t }
+  }
+  // ox.scl.repeat{ apply(); reset }
 }
