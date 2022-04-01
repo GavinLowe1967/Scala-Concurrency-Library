@@ -79,6 +79,8 @@ package object scl{
   type ?[A] = channel.InPort[A]
   type ![A] = channel.OutPort[A]
 
+  type Log[A] = debug.Log[A]
+
   // Linearizability testing
   import ox.cads.testing.LinearizabilityTester.{WorkerType,JITGraph}
   def LinearizabilityTester[S,C](seqObj: S, concObj: C, p: Int, 
