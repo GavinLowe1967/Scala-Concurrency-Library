@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.12.3)  31 MAR 2022 10:32
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.12.3)  1 APR 2022 13:44
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -8,8 +8,8 @@ LaTeX2e <2020-02-02> patch level 2
 L3 programming layer <2020-02-14>
 (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2019/12/20 v1.4l Standard LaTeX document class
-(/usr/share/texlive/texmf-dist/tex/latex/base/size12.clo
-File: size12.clo 2019/12/20 v1.4l Standard LaTeX file (size option)
+(/usr/share/texlive/texmf-dist/tex/latex/base/size11.clo
+File: size11.clo 2019/12/20 v1.4l Standard LaTeX file (size option)
 )
 \c@part=\count167
 \c@section=\count168
@@ -79,20 +79,20 @@ File: l3backend-pdfmode.def 2020-02-03 L3 backend support: PDF mode
 (./translate.aux)
 \openout1 = `translate.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 21.
-LaTeX Font Info:    ... okay on input line 21.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 21.
-LaTeX Font Info:    ... okay on input line 21.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 21.
-LaTeX Font Info:    ... okay on input line 21.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 21.
-LaTeX Font Info:    ... okay on input line 21.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 21.
-LaTeX Font Info:    ... okay on input line 21.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 21.
-LaTeX Font Info:    ... okay on input line 21.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 21.
-LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
 \c@lstlisting=\count184
 
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -110,136 +110,133 @@ LaTeX Font Info:    ... okay on input line 21.
 \everyMPtoPDFconversion=\toks17
 )
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <14.4> on input line 22.
+(Font)              <12> on input line 24.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 22.
+(Font)              <8> on input line 24.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 41.
+(Font)              <6> on input line 24.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 41.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 41.
+(Font)              <10.95> on input line 43.
 LaTeX Font Info:    Trying to load font information for OMS+cmss on input line 
-41.
-LaTeX Font Info:    No file OMScmss.fd. on input line 41.
+43.
+LaTeX Font Info:    No file OMScmss.fd. on input line 43.
 
 
 LaTeX Font Warning: Font shape `OMS/cmss/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 41.
+(Font)              for symbol `textbraceleft' on input line 43.
 
 
-Underfull \hbox (badness 1521) in paragraph at lines 54--56
-[]\OT1/cmr/m/n/12 Parallel com-po-si-tion of the col-lec-tion of
+Underfull \hbox (badness 1755) in paragraph at lines 56--58
+[]\OT1/cmr/m/n/10.95 Parallel com-po-si-tion of the col-lec-tion of
  []
 
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <9> on input line 88.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 88.
 [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+Overfull \hbox (1.85423pt too wide) in paragraph at lines 105--106
+[][][][][][][][][][]\OT1/cmr/m/n/10.95 , 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 116--116
+[][][][][][][][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 120--120
+[][][][][][][][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 120--120
+[][][][][][][][]
+ []
+
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 86.
-
-Overfull \hbox (4.6716pt too wide) in paragraph at lines 103--104
-[][][][][][][][][][]\OT1/cmr/m/n/12 , 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 114--114
-[][][][][][][][]
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 118--118
-[][][][][][][][]
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 118--118
-[][][][][][][][]
- []
-
-[2]
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <10.95> on input line 132.
+(Font)              <7> on input line 134.
 LaTeX Font Info:    Trying to load font information for OML+cmss on input line 
-134.
-LaTeX Font Info:    No file OMLcmss.fd. on input line 134.
-
+136.
+LaTeX Font Info:    No file OMLcmss.fd. on input line 136.
 
 LaTeX Font Warning: Font shape `OML/cmss/m/n' undefined
 (Font)              using `OML/cmm/m/it' instead
-(Font)              for symbol `textgreater' on input line 134.
+(Font)              for symbol `textgreater' on input line 136.
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 176--176
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 178--178
 [][][]
  []
 
-[3]
-Underfull \hbox (badness 1259) in paragraph at lines 207--208
-[]\OT1/cmr/m/n/12 Synchronisation (by thread with iden-tity
+
+Underfull \hbox (badness 10000) in paragraph at lines 210--210
+[][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 208--208
-[][][][][][][][]\OT1/cmr/m/n/12 -
+Underfull \hbox (badness 10000) in paragraph at lines 210--210
+[][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 208--208
-[][][][][][][][]\OT1/cmr/m/n/12 -
+Underfull \hbox (badness 1783) in paragraph at lines 211--213
+\OT1/cmr/m/n/10.95 with com-bin-ing func-tion [][][][][] (and start-ing
  []
 
 
-Underfull \hbox (badness 1533) in paragraph at lines 209--211
-\OT1/cmr/m/n/12 with com-bin-ing func-tion [][][][][] (and start-ing
- []
-
-
-Overfull \hbox (4.3734pt too wide) in paragraph at lines 213--213
+Overfull \hbox (1.5209pt too wide) in paragraph at lines 215--215
 [][][][][][][][][][][][][]| 
  []
 
-
-Underfull \hbox (badness 1540) in paragraph at lines 231--234
-[]\OT1/cmr/m/n/12 Creation of semaphore in the up state,
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 236--236
+[][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 234--234
-[][][][][][][][]\OT1/cmr/m/n/12 -
+Underfull \hbox (badness 10000) in paragraph at lines 239--239
+[][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
-[4] [5] (./translate.aux)
+
+Underfull \hbox (badness 10000) in paragraph at lines 239--239
+[][][][][][]\OT1/cmr/m/n/10.95 -
+ []
+
+[4] (./translate.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  ) 
 Here is how much of TeX's memory you used:
- 2813 strings out of 483183
- 37777 string characters out of 5966292
+ 2819 strings out of 483183
+ 37802 string characters out of 5966292
  277105 words of memory out of 5000000
- 17855 multiletter control sequences out of 15000+600000
- 539404 words of font info for 47 fonts, out of 8000000 for 9000
+ 17858 multiletter control sequences out of 15000+600000
+ 539405 words of font info for 47 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 36i,17n,41p,198b,1422s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/gavin/.texlive2019/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1200.600
+ 36i,17n,41p,198b,1421s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </home/gavin/.texlive2019/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1095.600
 pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></u
 sr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/sha
-re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/tex
-live/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/te
-xmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dis
-t/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts
-/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/p
-ublic/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
-sfonts/cm/cmss10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts
-/cm/cmssbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/
-cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12
-.pfb>
-Output written on translate.pdf (5 pages, 137482 bytes).
+re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texl
+ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/t
+ype1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/pub
+lic/amsfonts/cm/cmr9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmss10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
+m/cmssbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+sy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.p
+fb>
+Output written on translate.pdf (4 pages, 141324 bytes).
 PDF statistics:
- 73 PDF objects out of 1000 (max. 8388607)
- 52 compressed objects within 1 object stream
+ 70 PDF objects out of 1000 (max. 8388607)
+ 50 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

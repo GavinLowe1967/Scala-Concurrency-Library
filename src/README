@@ -1,3 +1,24 @@
+Replace closeOut by endOfStream? 
+
+In linearizability testing and Log, check operating system if tsQueue
+
+Write up SCL for CSO -- done, I think
+
+Write up alt design
+
+Remaining examples
+==================
+
+Trapezium with buffered channels
+
+Trapezium experiment
+
+Prac 4
+
+Exercises
+
+==================================================================
+
 Test buffered channels -- done 
 
 Use buffered channels in Trapezium. -- done
@@ -16,20 +37,8 @@ Get rid of closeIn? -- done
 
 Barrier synchronisation examples -- done
 
-Replace closeOut by endOfStream? 
+Counting semaphores -- done
 
-In linearizability testing and Log, check operating system if tsQueue
-
-Write up SCL for CSO -- done, I think
-
-Write up alt design
-
-Remaining examples
-==================
-
-Trapezium with buffered channels
-
-Trapezium experiment
 
 Prac 3 (DFS) -- done
 
@@ -39,11 +48,7 @@ SCL Monitors examples -- done
 
 Patterns examples -- done
 
-Semaphores examples
-
-Prac 4
-
-Exercises
+Semaphores examples -- done
 
 
 -----------------

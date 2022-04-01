@@ -65,8 +65,10 @@ package object scl{
 
   // Locks, semaphores and barriers
   type Lock = lock.Lock
+  type Semaphore = lock.Semaphore
   type MutexSemaphore = lock.MutexSemaphore
   type SignallingSemaphore = lock.SignallingSemaphore
+  type CountingSemaphore = lock.CountingSemaphore
   type Barrier = lock.Barrier
   type CombiningBarrier[A] = lock.CombiningBarrier[A]
   type AndBarrier = lock.AndBarrier

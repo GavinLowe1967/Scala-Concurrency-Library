@@ -1,8 +1,10 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[11pt,a4paper]{article}
 \advance\textwidth by 30mm
 % \advance\leftmargin by -20mm
 \advance\oddsidemargin by -15mm
 \advance\evensidemargin by -15mm
+\advance\textheight by 28mm
+\advance\topmargin by -20mm
 \sloppy
 
 \title{SCL for CSO Programmers}
@@ -233,6 +235,9 @@ state, e.g.~for mutual exclusion.
 \\
 |new Signalling|\-\gap|Semaphore| & |SignallingSemaphore()|  & 
 Creation of semaphore in the down state, e.g.~for signalling. 
+\\
+|new Counting|\-\gap|Semaphore(permits)| & |Counting|\-\gap|Semaphore(permits)| &
+Counting semaphore, with |permits| permits available initially. 
 \\
 |sem.up| & |sem.up| & Raise the semaphore. 
 \\

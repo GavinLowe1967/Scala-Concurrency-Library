@@ -16,7 +16,8 @@ $(DIR)/Computation.class: $(DIR)/Stopped.class
 LOCKDIR = $(DIR)/lock
 
 LOCK_CPTS = $(LOCKDIR)/Barrier.class $(LOCKDIR)/CombiningBarrier.class	\
-$(LOCKDIR)/Semaphore.class $(LOCKDIR)/Lock.class
+$(LOCKDIR)/Semaphore.class $(LOCKDIR)/CountingSemaphore.class		\
+$(LOCKDIR)/Lock.class
 
 ##### Channels
 
