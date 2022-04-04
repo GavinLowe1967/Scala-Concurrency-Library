@@ -14,8 +14,9 @@ trait OutPort[A] extends Port{
     * @returns boolean indicating whether send successful. */
   def sendBeforeNanos(nanos: Long)(x: A): Boolean
 
-  /** Close the channel for sending. */
-  def closeOut(): Unit
+  /** Close the channel for sending, signalling the end of the stream. */
+  def endOfStream(): Unit
+  // def closeOut(): Unit
 
   /** Create a branch of an Alt from this. */
   def =!=> (value: => A) = new SimpleOutPortBranch(this, () => value)

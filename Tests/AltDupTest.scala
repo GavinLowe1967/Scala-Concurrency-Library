@@ -18,7 +18,7 @@ object AltDupTest{
       | l =?=> { x => out!(1, x) }
     )
     // println("tagger closed")
-    l .close; out.closeOut
+    l .close; out.endOfStream
   }
 
   /** Sender that sends [0..N) on c. */

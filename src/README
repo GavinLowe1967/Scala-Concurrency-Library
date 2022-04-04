@@ -1,10 +1,12 @@
-Replace closeOut by endOfStream? 
+Replace closeOut by endOfStream?  -- done
 
-In linearizability testing and Log, check operating system if tsQueue
+In linearizability testing and Log, check operating system if tsQueue -- done
 
 Write up SCL for CSO -- done, I think
 
 Write up alt design
+
+Maybe trim what is included in linearizability testing
 
 Remaining examples
 ==================
@@ -13,7 +15,7 @@ Trapezium with buffered channels
 
 Trapezium experiment
 
-Prac 4
+Prac 4 -- done
 
 Exercises
 

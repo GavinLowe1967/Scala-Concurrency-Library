@@ -151,7 +151,7 @@ class TrapeziumBag(
       toWorkers!(left, right, taskSize, delta)
       left = right
     }
-    toWorkers.closeOut
+    toWorkers.endOfStream
   }
 
   /** This variable ends up holding the result. */
@@ -216,7 +216,7 @@ class TrapeziumBagObjects(
         toWorkers!(left, right, taskSize, delta)
         left = right
       }
-      toWorkers.closeOut
+      toWorkers.endOfStream
     }
 
     // Start the server running

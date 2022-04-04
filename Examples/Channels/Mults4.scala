@@ -5,7 +5,7 @@ import ox.scl._
 object Mults4{
   /** Send the naturals on out. */
   def nats(out: ![Int]) = thread{ 
-    var n = 0; while(true){ out!n; n += 1 } // ; println("closing"); out.closeOut
+    var n = 0; while(true){ out!n; n += 1 }
   }
 
   /** Repeatedly input on in, sending alternate elements on out. */

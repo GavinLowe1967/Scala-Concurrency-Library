@@ -46,13 +46,13 @@ object TimeoutTest{
       if(verbose) 
         if(success) println(s"sent $i") else println(s"failed to send $i")
     }
-    c.closeOut
+    c.endOfStream
   }
 
   /** A thread that sends [0..max) on c. */
   def senderSeq(c: Chan[Int], max: Int, maxDelay: Int = 1) = thread{
     for(i <- 0 until max){ c!i; sleep(Random.nextInt(maxDelay)) }
-    c.closeOut
+    c.endOfStream
   }
 
   /** A thread that tries to receive at intervals of Delay ms, and expects to
@@ -128,7 +128,7 @@ object TimeoutTest{
         }
         | toSend < iters1 && c3 =!=> { toSend } ==> { toSend += 1 }
       )
-      c3.closeOut
+      c3.endOfStream
       assert(nextFrom2 == iters1 && toSend == iters1)
     }
     run(senderTimeout(c1, sent) || senderSeq(c2,iters1) || 

@@ -92,8 +92,10 @@ standard sends and receives is unchanged.  The syntax for time-bounded sends
 and receives is changed slightly (see below).  
 
 The syntax for closing channels is mostly unchanged, except the |closeIn|
-operation has been removed (it was equivalent to |close|).  In addition, a
-|reopen| operation has been added to re-open a closed channel.
+operation has been removed (it was equivalent to |close|).  |closeOut| has
+been renamed to |endOfStream| (this operation normally signals the end of a
+stream).  In addition, a |reopen| operation has been added to re-open a closed
+channel.
 
 
 \begin{compare}
@@ -109,7 +111,7 @@ operation has been removed (it was equivalent to |close|).  In addition, a
 |out!x| & |out!x| & Send |x| on |OutPort| |out|. \\
 |c.close|, |in.close| & |c.close|, |in.closeIn| & 
 Fully close the channel. \\
-|out.closeOut| & |out.closeOut| & Close the channel for sending, normally
+|out.endOfStream| & |out.closeOut| & Close the channel for sending, normally
 signalling the end of the stream. \\
 |c.reopen| & --- & Re-open the channel. 
 \\
@@ -168,7 +170,8 @@ acquired or released.  A computation can be protected by a |Lock| using
 \SCALA{lock.mutex\{comp\}}: this ensures |comp| is executed under mutual
 exclusion on the lock.  
 
-Conditions can be created, associated with a |Lock|, and used as with CSO. 
+Conditions can be created, associated with a |Lock|, and used as with CSO
+monitors.
 
 \begin{compare}
 |new Lock| & |new Monitor| & Creation of lock or monitor. \\

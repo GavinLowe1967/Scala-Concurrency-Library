@@ -5,7 +5,7 @@ FSC = fsc -cp /home/gavin/Scala/SCL
 all:   $(DIR)/package.class 
 
 clean:
-	rm $(DIR)/*.class $(DIR)/*/*.class; fsc -shutdown
+	rm $(DIR)/*.class $(DIR)/*/*.class $(DIR)/../cads/*/*.class; fsc -shutdown
 
 ##### Top-level
 
@@ -45,7 +45,8 @@ $(TESTDIR)/Event.class $(TESTDIR)/Configuration.class				\
 $(TESTDIR)/ConfigSet.class $(TESTDIR)/MyBitMapSet.class				\
 $(TESTDIR)/UndoConfig.class $(TESTDIR)/QLTHistory.class
 
-$(TESTDIR)/Configuration.class:	$(TESTDIR)/ConfigSet.class
+$(TESTDIR)/Configuration.class $(TESTDIR)/ConfigSet.class:	Testing/Configuration.scala Testing/ConfigSet.scala 
+	$(FSC) -d .. Testing/Configuration.scala Testing/Config.scala
 
 # Logging for sequential generic testers
 TESTING_GEN_LOG = $(TESTDIR)/GenericThreadLog.class				\
@@ -57,7 +58,7 @@ TESTING_QUEUE_LOG = $(TESTDIR)/QueueThreadLog.class $(TESTDIR)/QueueLog.class   
 $(TESTDIR)/SharedQueueLog.class $(TESTDIR)/QueueTSThreadLog.class               \
 $(TESTDIR)/QueueTSLog.class
 
-$(TESTING_QUEUE_LOG): $(CADS_COLL_DIR)/BoundedBuffer.class
+$(TESTING_QUEUE_LOG): $(TESTDIR)/BoundedBuffer.class
 
 # Logging for generic competition testers
 TESTING_COMP_LOG = $(TESTDIR)/CompetitionThreadLog.class			\

@@ -15,7 +15,7 @@ object AltTest{
         /*println(s"received $x on r");*/ out!(1, x) }
     )
     // println("tagger closed")
-    l .close; r.close; out.closeOut
+    l .close; r.close; out.endOfStream
   }
 
   /** Number of values sent on each channel per test. */

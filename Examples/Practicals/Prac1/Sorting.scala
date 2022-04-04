@@ -11,7 +11,7 @@ object Sorting{
       run(thread{ x0 = in0?() } || thread{ x1 = in1?() })
       run(thread{ out0!(x0 min x1) } || thread{ out1!(x0 max x1) })
     }
-    in0.close; in1.close; out0.closeOut; out1.closeOut
+    in0.close; in1.close; out0.endOfStream; out1.endOfStream
   }
 
   /** A sorting network for four values. */
@@ -187,7 +187,7 @@ object SortingTest{
   def sender(chans: List[![Int]], xs: Array[Int]) = thread("sender"){
     val n = chans.length; require(xs.length == n)
     for(i <- 0 until n) chans(i)!xs(i)
-    chans.foreach(_.closeOut)
+    chans.foreach(_.endOfStream)
   }
 
   /** Receive values on chans and check that they equal a sorted version of

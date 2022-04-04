@@ -18,7 +18,7 @@ object QSortChannels{
 
 	// Now output the results
 	repeat{ out!(fromLower?()) }; out!pivot; repeat{ out!(fromHigher?()) }
-	out.closeOut
+	out.endOfStream
       }      
 
       // Put the system together, and run it
@@ -26,7 +26,7 @@ object QSortChannels{
 	controller || qSort(toHigher, fromHigher) || qSort(toLower, fromLower)
       )
     }{
-      out.closeOut // We've received no data, so just close
+      out.endOfStream // We've received no data, so just close
     }
   }
 }

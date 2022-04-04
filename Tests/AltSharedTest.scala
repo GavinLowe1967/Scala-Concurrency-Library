@@ -3,8 +3,6 @@ package tests
 import ox.scl._
 import scala.util.Random
 
-
-
 /** Test on an alt where channels are shared. */
 object AltSharedTest{
   /* The first test has the InPort of in shared between middle1 and middle2.
@@ -17,13 +15,13 @@ object AltSharedTest{
 
   /** Thread that sends [0..iters) on out. */
   def sender1(out: ![Int]) = thread{ 
-    for(i <- 0 until iters) out!i; out.closeOut 
+    for(i <- 0 until iters) out!i; out.endOfStream 
   }
 
   /** One-place buffer from in to out, using a serve. */
   def middle1(in: ?[Int], out: ![Int]) = thread{
     serve( in =?=> { x => if(verbose) println(s"transmitting $x"); out!x } )
-    out.closeOut
+    out.endOfStream
   }
 
   /* In the case of test2, we want to close out2 when both middle2 and middle3
@@ -31,7 +29,7 @@ object AltSharedTest{
    * channel. */
   var doneCount = 0
   def maybeClose(out: ![Int]) = synchronized{
-    doneCount += 1; if(doneCount == 2){ out.closeOut; doneCount = 0 }
+    doneCount += 1; if(doneCount == 2){ out.endOfStream; doneCount = 0 }
   }
 
   /** One-place buffer from in to out, not using an alt.  flag is true if we're
@@ -42,7 +40,7 @@ object AltSharedTest{
       val x = in?(); out!x; 
       if(!flag && Random.nextInt(3) == 0) Thread.sleep(1) // pause again
     }
-    if(flag) out.closeOut else maybeClose(out)
+    if(flag) out.endOfStream else maybeClose(out)
   }
 
   /** Unbounded buffer from in to out, using an alt. */
