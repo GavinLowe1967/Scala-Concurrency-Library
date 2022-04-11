@@ -2,7 +2,7 @@ import ox.scl._
 
 object QSortChannels{
   // Quicksort: sort data received on in, and output on out
-  def qSort(in: ?[Int], out: ![Int]): Computation = thread("QSort"){
+  def qSort(in: ?[Int], out: ![Int]): ThreadGroup = thread("QSort"){
     attempt{
       val pivot = in?()
       val toHigher, toLower, fromHigher, fromLower = new SyncChan[Int]

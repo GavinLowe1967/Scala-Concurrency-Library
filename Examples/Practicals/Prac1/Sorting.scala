@@ -15,7 +15,7 @@ object Sorting{
   }
 
   /** A sorting network for four values. */
-  def sort4(ins: List[?[Int]], outs: List[![Int]]): Computation = {
+  def sort4(ins: List[?[Int]], outs: List[![Int]]): ThreadGroup = {
     require(ins.length == 4 && outs.length == 4)
     val c0, c1, c2, c3, c4, c5 = new SyncChan[Int]
     /* The network is as below
@@ -38,7 +38,7 @@ object Sorting{
     * Pre: ins.length = n && outs.length = n+1, for some n >= 1.
     * If the values xs input on ins are sorted, and x is input on in, then a
     * sorted permutation of x::xs is output on ys. */
-  def insert(ins: List[?[Int]], in: ?[Int], outs: List[![Int]]): Computation = {
+  def insert(ins: List[?[Int]], in: ?[Int], outs: List[![Int]]): ThreadGroup = {
     val n = ins.length; require(n >= 1 && outs.length == n+1)
     if(n == 1) comparator(ins(0), in, outs(0), outs(1))
     else{
@@ -64,7 +64,7 @@ object Sorting{
     * Pre: ins.length = n && outs.length = n+1, for some n >= 1.
     * If the values xs input on ins are sorted, and x is input on in, then a
     * sorted permutation of x::xs is output on ys. */
-  def insert1(ins: List[?[Int]], in: ?[Int], outs: List[![Int]]): Computation = {
+  def insert1(ins: List[?[Int]], in: ?[Int], outs: List[![Int]]): ThreadGroup = {
     val n = ins.length; require(n >= 1 && outs.length == n+1)
     if(n == 1) comparator(ins(0), in, outs(0), outs(1))
     else if(n == 2){
@@ -114,7 +114,7 @@ object Sorting{
   /** Insertion sort.
     * @param useLogInsert should the logarithmic version (insert1) be used?  */
   def insertionSort(useLogInsert: Boolean)(ins: List[?[Int]], outs: List[![Int]])
-      : Computation = {
+      : ThreadGroup = {
     val n = ins.length; require(n >= 2 && outs.length == n)
     if(n == 2) comparator(ins(0), ins(1), outs(0), outs(1))
     else{
@@ -146,7 +146,7 @@ object Sorting{
   /** A merging network for 2^k values.  If the values received on
     * ins1 and ins2 are sorted, then their merger is output on outs. */
   def merge(k: Int)(ins1: List[?[Int]], ins2: List[?[Int]], outs: List[![Int]])
-      : Computation = {
+      : ThreadGroup = {
     val n = 1 << k; val halfN = n/2
     require(k >= 1 && ins1.length == halfN && ins2.length == halfN &&
               outs.length == n)
@@ -162,7 +162,7 @@ object Sorting{
   }
 
   /** A bitonic sorting network for 2^k values. */
-  def bitonicSort(k: Int)(ins: List[?[Int]], outs: List[![Int]]): Computation = {
+  def bitonicSort(k: Int)(ins: List[?[Int]], outs: List[![Int]]): ThreadGroup = {
     val n = 1 << k; val halfN = n/2
     require(ins.length == n && outs.length == n)
     if(k == 1) // n = 2
@@ -204,7 +204,7 @@ object SortingTest{
 
   /** Run a single test on sorter.  
     * Pre: sorter is a sorting network for n values. */
-  def sorterTest(n: Int, sorter: (List[?[Int]], List[![Int]]) => Computation) = {
+  def sorterTest(n: Int, sorter: (List[?[Int]], List[![Int]]) => ThreadGroup) = {
     val ins, outs = List.fill(n)(new SyncChan[Int])
     val xs = Array.fill(n)(Random.nextInt(100))
     run(sender(ins, xs) || sorter(ins, outs) || receiver(outs, xs))

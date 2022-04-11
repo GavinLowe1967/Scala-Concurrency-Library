@@ -1,6 +1,3 @@
-Replace closeOut by endOfStream?  -- done
-
-In linearizability testing and Log, check operating system if tsQueue -- done
 
 Write up SCL for CSO -- done, I think
 
@@ -10,7 +7,6 @@ Maybe trim what is included in linearizability testing
 
 Change name of Computation? Threads?  ThreadGroup? 
 
-add isOpen function? -- done
 
 Specialise BuffChan for singletons? -- done; it's not clear how useful this is. 
 
@@ -33,9 +29,18 @@ Prac 4 -- done
 Exercises:
 - Sheet 1: run MatrixTest on casteret, otherwise done
 - Sheet 2 done
-- Later MenWomen examples done
+- Sheet 3 done
+- Later MenWomen, Mod3 examples done
+- Sheet 4 TO DO 
+
 
 ==================================================================
+
+add isOpen function? -- done
+
+Replace closeOut by endOfStream?  -- done
+
+In linearizability testing and Log, check operating system if tsQueue -- done
 
 Test buffered channels -- done 
 

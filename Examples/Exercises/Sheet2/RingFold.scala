@@ -29,7 +29,7 @@ class RingFold[T](xs: Array[T], f: (T,T) => T, outs: Array[SyncChan[T]]){
   }  
 
   /** The complete ring. */
-  def apply(): Computation = || (for(i <- 0 until n) yield node(i))
+  def apply(): ThreadGroup = || (for(i <- 0 until n) yield node(i))
 }
 
 // -------------------------------------------------------
@@ -65,7 +65,7 @@ class RingFold1[T: ClassTag](
   }  
 
   /** The complete ring. */
-  def apply(): Computation = || (for(i <- 0 until n) yield node(i))
+  def apply(): ThreadGroup = || (for(i <- 0 until n) yield node(i))
 }
 
 

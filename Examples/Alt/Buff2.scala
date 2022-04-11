@@ -44,7 +44,7 @@ object Buff2{
 
   /** The complete system.
     * @param useAlt should the alt-based definition be used? */
-  def system(useAlt: Boolean): Computation = {
+  def system(useAlt: Boolean): ThreadGroup = {
     // Random delay
     def pause = Thread.sleep(scala.util.Random.nextInt(500))
 

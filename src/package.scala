@@ -1,23 +1,23 @@
 package ox
 
 package object scl{
-  /* Creating and running Computations. */
+  /* Creating and running ThreadGroups. */
 
   /** Create a thread that will execute `comp`. */
-  @inline def thread(comp: => Unit) = new Computation(List((null, _ => comp)))
+  @inline def thread(comp: => Unit) = new ThreadGroup(List((null, _ => comp)))
 
   /** Create a thread with name `name` that will execute `comp`. */
   def thread(name: String)(comp: => Unit) = 
-    new Computation(List((name, _ => comp)))
+    new ThreadGroup(List((name, _ => comp)))
 
   /** Run the computation `comp`. */
-  def run(comp: Computation) = comp.run
+  def run(comp: ThreadGroup) = comp.run
 
   /** Fork off the computation `comp`. */
-  def fork(comp: Computation) = comp.fork
+  def fork(comp: ThreadGroup) = comp.fork
 
-  /** Create a parallel computation of the `Computation`s `comps`. */
-  def || (comps: Seq[Computation]): Computation = Computation.||(comps)
+  /** Create a parallel computation of the `ThreadGroup`s `comps`. */
+  def || (comps: Seq[ThreadGroup]): ThreadGroup = ThreadGroup.||(comps)
 
   /** Repeatedly perform `body`. */
   @inline def repeat(body: => Unit): Unit = {

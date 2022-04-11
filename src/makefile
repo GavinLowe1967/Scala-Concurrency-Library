@@ -9,7 +9,7 @@ clean:
 
 ##### Top-level
 
-$(DIR)/Computation.class: $(DIR)/Stopped.class
+$(DIR)/ThreadGroup.class: $(DIR)/Stopped.class
 
 ##### Locks
 
@@ -93,7 +93,7 @@ DEBUGDIR = $(DIR)/debug
 
 ##### Complete package
 
-$(DIR)/package.class: $(DIR)/Computation.class $(CHANNELS) $(DEBUGDIR)/Log.class $(LOCK_CPTS) $(TESTING_SOLVERS) $(CHANDIR)/Alt.class
+$(DIR)/package.class: $(DIR)/ThreadGroup.class $(CHANNELS) $(DEBUGDIR)/Log.class $(LOCK_CPTS) $(TESTING_SOLVERS) $(CHANDIR)/Alt.class
 
 ##### Recipes
 

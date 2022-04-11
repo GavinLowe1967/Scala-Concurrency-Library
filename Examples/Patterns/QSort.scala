@@ -21,7 +21,7 @@ class QSort(a: Array[Int]){
 
 
   /** Sort a[l..r) using recursive parallelism. */
-  private def qsort(l: Int, r: Int): Computation = thread{
+  private def qsort(l: Int, r: Int): ThreadGroup = thread{
     if(l+1 < r){
       val m = partition(l, r)
       run(qsort(l, m) || qsort(m+1, r))
@@ -36,7 +36,7 @@ class QSort(a: Array[Int]){
 
   /** Sort a[l..r) using recursive parallelism for segments of size at least
     * parLimit. */
-  private def qsortLimit(l: Int, r: Int): Computation = thread{
+  private def qsortLimit(l: Int, r: Int): ThreadGroup = thread{
     if(l+1 < r){
       val m = partition(l, r)
       if(r-l >= parLimit) run(qsortLimit(l, m) || qsortLimit(m+1, r))
