@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.12.3)  1 APR 2022 14:58
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.12.3)  11 APR 2022 11:10
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -116,94 +116,94 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <6> on input line 24.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <10.95> on input line 43.
+(Font)              <10.95> on input line 50.
 LaTeX Font Info:    Trying to load font information for OMS+cmss on input line 
-43.
-LaTeX Font Info:    No file OMScmss.fd. on input line 43.
+50.
+LaTeX Font Info:    No file OMScmss.fd. on input line 50.
 
 
 LaTeX Font Warning: Font shape `OMS/cmss/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 43.
+(Font)              for symbol `textbraceleft' on input line 50.
 
 
-Underfull \hbox (badness 1755) in paragraph at lines 56--58
+Underfull \hbox (badness 1755) in paragraph at lines 68--70
 []\OT1/cmr/m/n/10.95 Parallel com-po-si-tion of the col-lec-tion of
  []
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 88.
+(Font)              <9> on input line 103.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 88.
+(Font)              <5> on input line 103.
 [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-Overfull \hbox (1.85423pt too wide) in paragraph at lines 107--108
+Overfull \hbox (1.85423pt too wide) in paragraph at lines 121--122
 [][][][][][][][][][]\OT1/cmr/m/n/10.95 , 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 118--118
+Underfull \hbox (badness 10000) in paragraph at lines 133--133
 [][][][][][][][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 122--122
+Underfull \hbox (badness 10000) in paragraph at lines 137--137
 [][][][][][][][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 122--122
+Underfull \hbox (badness 10000) in paragraph at lines 137--137
 [][][][][][][][]
  []
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 136.
+(Font)              <7> on input line 151.
 LaTeX Font Info:    Trying to load font information for OML+cmss on input line 
-138.
-LaTeX Font Info:    No file OMLcmss.fd. on input line 138.
+153.
+LaTeX Font Info:    No file OMLcmss.fd. on input line 153.
 
 LaTeX Font Warning: Font shape `OML/cmss/m/n' undefined
 (Font)              using `OML/cmm/m/it' instead
-(Font)              for symbol `textgreater' on input line 138.
+(Font)              for symbol `textgreater' on input line 153.
 
 [2]
-Underfull \hbox (badness 10000) in paragraph at lines 181--181
+Underfull \hbox (badness 10000) in paragraph at lines 200--200
 [][][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 213--213
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
 [][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 213--213
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
 [][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
 
-Underfull \hbox (badness 1783) in paragraph at lines 214--216
+Underfull \hbox (badness 1783) in paragraph at lines 233--235
 \OT1/cmr/m/n/10.95 with com-bin-ing func-tion [][][][][] (and start-ing
  []
 
 
-Overfull \hbox (1.5209pt too wide) in paragraph at lines 218--218
+Overfull \hbox (1.5209pt too wide) in paragraph at lines 237--237
 [][][][][][][][][][][][][]| 
  []
 
 [3]
-Underfull \hbox (badness 10000) in paragraph at lines 239--239
+Underfull \hbox (badness 10000) in paragraph at lines 258--258
 [][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 242--242
+Underfull \hbox (badness 10000) in paragraph at lines 261--261
 [][][][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 242--242
+Underfull \hbox (badness 10000) in paragraph at lines 261--261
 [][][][][][]\OT1/cmr/m/n/10.95 -
  []
 
@@ -213,10 +213,10 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  ) 
 Here is how much of TeX's memory you used:
- 2820 strings out of 483183
- 37818 string characters out of 5966292
- 277105 words of memory out of 5000000
- 17859 multiletter control sequences out of 15000+600000
+ 2822 strings out of 483183
+ 37834 string characters out of 5966292
+ 278105 words of memory out of 5000000
+ 17861 multiletter control sequences out of 15000+600000
  539405 words of font info for 47 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  36i,17n,41p,198b,1421s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -233,7 +233,7 @@ onts/cm/cmss10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
 m/cmssbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cm
 sy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.p
 fb>
-Output written on translate.pdf (4 pages, 141393 bytes).
+Output written on translate.pdf (4 pages, 142970 bytes).
 PDF statistics:
  70 PDF objects out of 1000 (max. 8388607)
  50 compressed objects within 1 object stream

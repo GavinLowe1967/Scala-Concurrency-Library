@@ -1,15 +1,23 @@
 DIR = .
 
-all:   $(DIR)/TrapeziumTest.class
+all:   $(DIR)/TrapeziumTest.class $(DIR)/TrapeziumExperiment.class
 
 clean:
 	rm $(DIR)/*.class $(DIR)/*/*.class; fsc -shutdown
 
-FSC = fsc -cp .:/home/gavin/Scala/SCL
+FSC = fsc -cp .:/home/gavin/Scala/SCL:/home/gavin/Scala/Util
 
-$(DIR)/TrapeziumTest.class: $(DIR)/Trapezium.class
+FSCX = fsc -cp .:/home/gavin/Scala/SCL:/home/gavin/Scala/Util
 
+$(DIR)/Trapezium.class: $(DIR)/TrapeziumT.class
 
+$(DIR)/TrapeziumTest.class $(DIR)/TrapeziumRun.class: $(DIR)/Trapezium.class
+
+$(DIR)/TrapeziumExperiment.class: $(DIR)/TrapeziumRun.class
+
+# $(DIR)/TrapeziumExperiment.class: TrapeziumExperiment.scala
+# 	$(FSCX) $<
+# TrapeziumExperiment.scala
 
 $(DIR)/%.class:     %.scala
 	$(FSC)  $<

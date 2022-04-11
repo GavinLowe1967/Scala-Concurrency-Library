@@ -29,7 +29,7 @@ class SyncChan[A] extends Chan[A]{
 
   /** Close the channel. */
   def close() = lock.mutex{
-    isClosed = true
+    isChanClosed = true
     // Signal to waiting threads
     slotEmptied.signalAll(); slotFull.signalAll(); continue.signalAll()
     // Signal to waiting alt, if any
@@ -50,7 +50,7 @@ class SyncChan[A] extends Chan[A]{
     * are trying to send or receive. */
   def reopen() = lock.mutex{
     require(isClosed, s"reopen called of $this, but it isn't closed.") 
-    isClosed = false; full = false; sendingAlt = null; receivingAlt = null
+    isChanClosed = false; full = false; sendingAlt = null; receivingAlt = null
   }
 
   /** Check the channel is open, throwing a Closed exception if not. */
@@ -198,19 +198,4 @@ class SyncChan[A] extends Chan[A]{
         Some(completeReceive)   // clear slot, signal and return result
     }
   }
-
-  // ======================================== Registration rules
-
-  /** Can an alt register at the InPort? */
-  protected def checkCanRegisterIn = {
-    require(receivingAlt == null, s"Inport of channel used in two alts.")
-    require(sendingAlt == null, s"Both ports of channel used in alts.")
-  }
-
-  /** Can an alt register at the OutPort? */
-  protected def checkCanRegisterOut = {
-    require(receivingAlt == null, s"Both ports of channel used in alts.")
-    require(sendingAlt == null, s"Outport of channel used in two alts.")
-  }
-
 }

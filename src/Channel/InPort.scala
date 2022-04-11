@@ -31,7 +31,10 @@ trait InPort[A] extends Port{
   protected def completeReceive(): A
 
   /** Is the channel closed? */
-  protected var isClosed = false
+  protected var isChanClosed = false
+
+  /** Is the channel closed? */
+  def isClosed = isChanClosed
 
   /** Check an alt can register here, throwing an exception otherwise. */
   protected def checkCanRegisterIn: Unit

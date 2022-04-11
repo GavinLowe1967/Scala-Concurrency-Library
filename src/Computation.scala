@@ -20,7 +20,10 @@ class Computation(private val comps: List[(String, Unit => Unit)]){
     val thread: java.lang.Thread = new java.lang.Thread(new Runnable{ 
       def run = try{ comp(()) } catch{ 
         case _: InterruptedException => {} // Interrupted by another thread
-        case st: Stopped => thrown = st // just store
+        case st: Stopped => 
+          // println(s"Thread ${name} terminated by throwing:")
+          // thrown.printStackTrace();
+          thrown = st // just store
         case th: Throwable => 
           for(to <- peers) if(to != thisTO) to.thread.interrupt// interrupt peers
           thrown = th
@@ -112,9 +115,9 @@ object Computation{
 // =======================================================
 
 /** A thread with name `name` (if non-null) that will execute `comp`. */
-class Thread(name: String, comp: => Unit) 
-    extends Computation(List( (name, _ => comp) )){
+// class Thread(name: String, comp: => Unit) 
+//     extends Computation(List( (name, _ => comp) )){
 
-  // override def fork = mkThread((name, _ => comp)).start
+//   // override def fork = mkThread((name, _ => comp)).start
 
-}
+// }

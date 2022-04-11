@@ -1,35 +1,5 @@
 import ox.scl._
 
-/** Abstract class, representing the problem of calculating the integral of f
-  * from a to b. */
-abstract class TrapeziumT(f: Double => Double, a: Double, b: Double){
-  require(a <= b)
-
-  /** Calculate the integral. */
-  def apply(): Double
-
-  /** Use trapezium to calculate integral of f from left to right, using n
-    * intervals of size delta.  Pre: n*delta = right-left. */
-  @inline protected 
-  def integral(left: Double, right: Double, n: Int, delta: Double): Double = {
-    require(n > 0)
-    // assert(n*delta == right-left); this fails because of rounding errors!
-    require(Math.abs(n*delta - (right-left)) < 0.000000001)
-    var sum: Double = (f(right)+f(left))/2.0
-    for(i <- 1 until n) sum += f(left+i*delta)
-    sum*delta
-  }
-}
-
-// ==================================================================
-
-/** Sequential implementation. */
-class SeqTrapezium(f: Double => Double, a: Double, b: Double, n: Int)
-    extends TrapeziumT(f, a, b){
-  require(n > 0)
-
-  def apply() = integral(a, b, n, (b-a)/n)
-}
 
 // ==================================================================
 
@@ -38,7 +8,7 @@ class SeqTrapezium(f: Double => Double, a: Double, b: Double, n: Int)
   * a single range.  Buffered channels are used if buffChan is true. */
 class Trapezium(
   f: Double => Double, a: Double, b: Double, n: Long, 
-  nWorkers: Int, buffChan: Boolean = false)
+  nWorkers: Int, buffering: Int = -1)
     extends TrapeziumT(f, a, b){
   require(n >= nWorkers)
 
@@ -47,13 +17,14 @@ class Trapezium(
     * using taskSize intervals of size delta. */
   private type Task = (Double, Double, Int, Double)
 
+  private def mkChan[T: scala.reflect.ClassTag]: Chan[T] = 
+    if(buffering > 0) new BuffChan[T](buffering) else new SyncChan[T]
+
   /** Channel from the controller to the workers, to distribute tasks. */
-  private val toWorkers: Chan[Task] =
-    if(buffChan) new BuffChan[Task](nWorkers) else new SyncChan[Task]
+  private val toWorkers: Chan[Task] = mkChan[Task]
 
   /** Channel from the workers to the controller, to return sub-results. */
-  private val toController: Chan[Double] =
-    if(buffChan) new BuffChan[Double](nWorkers) else new SyncChan[Double]
+  private val toController: Chan[Double] = mkChan[Double]
 
   /** A worker, which receives arguments from the controller, estimates the
     * integral, and returns the results. */
@@ -106,7 +77,7 @@ class Trapezium(
   * Buffered channels are used if buffChan is true. */
 class TrapeziumBag(
   f: Double => Double, a: Double, b: Double, n: Long, 
-  nWorkers: Int, nTasks: Int, buffChan: Boolean = false)
+  nWorkers: Int, nTasks: Int, buffering: Int = -1)
     extends TrapeziumT(f, a, b){
   require(0 < nTasks && nTasks <= n && n/nTasks < (1<<31)-1 )
 
@@ -115,13 +86,14 @@ class TrapeziumBag(
     * using taskSize intervals of size delta. */
   private type Task = (Double, Double, Int, Double)
 
+  private def mkChan[T: scala.reflect.ClassTag]: Chan[T] = 
+    if(buffering > 0) new BuffChan[T](buffering) else new SyncChan[T]
+
   /** Channel from the controller to the workers, to distribute tasks. */
-  private var toWorkers: Chan[Task] = 
-    if(buffChan) new BuffChan[Task](nWorkers) else new SyncChan[Task]
+  private var toWorkers: Chan[Task] = mkChan[Task]
 
   /** Channel from the workers to the controller, to return sub-results. */
-  private val toController: Chan[Double] =
-    if(buffChan) new BuffChan[Double](nWorkers) else new SyncChan[Double]
+  private val toController: Chan[Double] = mkChan[Double]
 
   /** A worker, which repeatedly receives arguments from the distributor,
     * estimates the integral, and sends the result to the collector. */
@@ -170,6 +142,9 @@ class TrapeziumBag(
   }
 
   def apply: Double = { run(system); result } 
+  // Note: apply should be called only once.  On a second call, the (new)
+  // workers and distributor will throw a ChanClosed exception, but the
+  // collector will hang.
 }
 
 // =======================================================
@@ -180,7 +155,7 @@ class TrapeziumBag(
   * encapsulates the concurrency within objects. */
 class TrapeziumBagObjects(
   f: Double => Double, a: Double, b: Double, n: Long, 
-  nWorkers: Int, nTasks: Int, buffChan: Boolean = false)
+  nWorkers: Int, nTasks: Int, buffering: Int = -1)
     extends TrapeziumT(f, a, b){
   require(0 < nTasks && nTasks <= n && n/nTasks < (1<<31)-1 )
 
@@ -193,7 +168,7 @@ class TrapeziumBagObjects(
   private class BagOfTasks{
     /** Channel from the controller to the workers, to distribute tasks. */
     private val toWorkers = 
-      if(buffChan) new BuffChan[Task](nWorkers) else new SyncChan[Task]
+      if(buffering > 0) new BuffChan[Task](buffering) else new SyncChan[Task]
 
     /** Get a task.  
       * @throws Stopped exception if there are no more tasks. */
@@ -228,7 +203,7 @@ class TrapeziumBagObjects(
   private class Collector{
     /** Channel from the workers to the controller, to return sub-results. */
     private val toController = 
-      if(buffChan) new BuffChan[Double](nWorkers) else new SyncChan[Double]
+      if(buffering > 0) new BuffChan[Double](buffering) else new SyncChan[Double]
 
     /** Channel that sends the final result. */
     private val resultChan = new SyncChan[Double]

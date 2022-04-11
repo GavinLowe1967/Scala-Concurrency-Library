@@ -1,7 +1,7 @@
 \documentclass[12pt,a4paper]{article}
 
 \usepackage{scalalistings}
-\title{The implementation of \SCALA{alt} within SCL}
+\title{The implementation of {\scalashape alt} within SCL}
 \author{Gavin Lowe}
 
 \begin{document}
@@ -19,12 +19,12 @@ The execution of each iteration of an alt goes through several steps.
   deregistration stage.
     
 \item \textbf{Waiting:} if at least one branch was feasible, but none was
-  ready, then the Alt waits.
+  ready, then the alt waits.
     
 \item \textbf{Call-backs:} if a port becomes ready, it calls the
   |maybeReceive| function, which causes the main thread to be woken.  If a
   port is closed, it calls the |portClosed| function; if subsequently no
-  branch is feasible, then the main port is again woken, and it throws an
+  branch is feasible, then the main thread is again woken, and it throws an
   |AltAbort|.
     
 \item \textbf{Deregistration:} all remaining registered ports are
@@ -33,25 +33,107 @@ The execution of each iteration of an alt goes through several steps.
 \item \textbf{Completion:} The relevant code for the branch is executed,
   either the body of an |InPort|, or the continuation of an |OutPort|.
 \end{enumerate}
+%
+These steps are explained in more detail in the following sections. 
 
 Note that the call-backs are performed by the thread at the other end of the
 channel.  All other steps are performed by the thread executing the alt.
 
-Code that involves calling a function in a port is executed \emph{outside} a
-|synchronized| block, to avoid deadlocks.  However, it is executed using the
-lock of the port.  If a call-back from a port happens during the registration
-phase, it is blocked until the registration is over.  If an attempt to
-deregister a port is made concurrently with a call-back from the same port,
-then the former is blocked until the call-back is complete.  Note that after
-deregistration of a port, there can be no subsequent call-back from that port.
+Internally, the alt uses |synchronized| blocks to avoid races.  An exception
+is that code that calls a function in a port is executed \emph{outside} a
+|synchronized| block, to avoid deadlocks.  However, this code is executed
+using the lock of the port, to avoid races in the port.  
+
+If a call-back from a port happens during the registration phase, it is
+blocked until the registration is over.  If an attempt to deregister a port is
+made concurrently with a call-back from the same port, then the former is
+blocked until the call-back is complete.  Note that after deregistration of a
+port, there can be no subsequent call-back from that port.
 
 %%%%%
 
 \subsection*{Registration}
 
-If a port is enabled in several different branches, all but the first is
-ignored.
+During registration, the alt iterates through the branches.  In the case of a
+|serve|, the registration starts from the branch after the one that was
+executed on the previous iteration. 
 
+For each branch, if the guard is true and no earlier branch previously
+registered the same port, the alt calls a function |registerIn| (for an
+|InPort|) or |registerOut| (for an |OutPort|), so see whether the port is able
+to communicate.  In each case, several responses are possible:
+%
+\begin{itemize}
+\item That the port is closed, in which case the alt marks the branch as not
+  enabled.
+
+\item That the port is able to communicate.  In the case of an |InPort|, the
+  response includes the value communicated.  In the case of an |OutPort|, the
+  call includes a computation corresponding to the value passed, which the
+  port evaluates before responding.  In each case, the communication logically
+  occurs during the function call.  The alt records the index of the branch
+  concerned.
+
+\item That the port is not currently able to communicate.  In this case, the
+  port stores a reference to the alt, together with the index of the branch
+  (for subsequently identifying the branch in call-backs), and the iteration
+  number (which is used only in subsequent assertions).  The alt records the
+  branch as enabled.
+\end{itemize}
+
+Once it has completed registration, the alt notifies any call-backs, so they
+can proceed.
+%
+If no branch was enabled, it throws an |AltAbort| exception.  Otherwise,
+if a branch was able to communicate, the alt moves to the deregistration
+phase.  Otherwise it moves to the waiting phase.
+
+%%%%%
+
+\subsection*{Waiting}
+
+During the waiting phase, the main thread of the alt waits until a call-back
+informs it that either a branch has communicated or all branches are disabled
+(as a result of ports being closed).  In the latter case, it throws an
+|AltAbort| exception.
+
+%%%%%
+
+\subsection*{Call-backs}
+
+If a port that was unable to communicate at the point of registration
+subsequently becomes ready, it calls the function |maybeReceive| (for an
+|InPort|) or |maybeSend| (for an |OutPort|).  In each case, the branch index and
+iteration number are passed.
+%
+The call-back is blocked until the registration phase is complete.  At that
+point, if another communication has happened, the function responds negatively
+to the port, and the communication doesn't happen.  Otherwise, the
+communication goes ahead.  In the case of an |InPort|, the value to be
+communicated is passed in the call-back, and stored within the branch.  In the
+case of an |OutPort|, the value to be sent is calculated, and returned to the
+port.  The main thread of the alt is woken up.
+
+If a port that was unable to communicate at the point of registration
+subsequently closes, it calls the function |portClosed|.  The call-back is
+blocked until the registration phase is complete.  At that point, the branch
+is marked as disabled.  If no other branch is enabled, the main thread of the
+alt is woken up (to throw an |AltAbort|).
+
+%%%%%
+
+\subsection*{Deregistration}
+
+The alt iterates over the enabled branches, and calls a function
+|deregisterIn| (for an |InPort|) or |deregisterOut| (for an |OutPort|).  The
+port removes its record of the alt.  
+
+%%%%%
+
+\subsection*{Completion}
+
+In the case of an |InPort|, the value communicated is passed to the body of
+the branch.  In the case of an |OutPort|, the continuation is executed. 
 
 %%%%%
 
@@ -68,9 +150,10 @@ alt.)
 
 A synchronous channel may not have both of its ports in an alt.  Without this
 restriction, the following can happen: 
-\begin{itemize}
+\begin{enumerate}
 \item Alt $a_1$ registers at the |InPort| of channel~$c_1$, and alt~$a_2$
-  registers at the |InPort| of channel~$c_2$;
+  registers at the |InPort| of channel~$c_2$, with both unable to communicate
+  immediately;
 
 \item Alt $a_1$ tries to register at the |OutPort| of channel~$c_2$; the port
   performs a call-back to alt~$a_2$, which is blocked because $a_2$ is still
@@ -79,9 +162,37 @@ restriction, the following can happen:
 \item Similarly, alt $a_2$ tries to register at the |OutPort| of
   channel~$c_1$; the port performs a call-back to alt~$a_1$, which is blocked
   because $a_1$ is still registering.
-\end{itemize}
+\end{enumerate}
 %
 This constitutes a deadlock. 
 
-I think there is no need for a similar restriction concerning buffered
-channels, but it is currently prevented. 
+With a buffered channel, a similar scenario can occur if one port of each
+channel is shared with another thread.  After the above step~1, suppose
+threads~$t_1$ and~$t_2$ try to send on the channels; these leads to call-backs
+to the two alts, which are blocked because the alts are still registering.
+Then when the alts try to register at the |OutPort|s, these are blocked
+because the other threads hold the locks on the channels.  This is again a
+deadlock. 
+
+At present, simultaneously using both ports of a channel in alts is prevented:
+an exception will be thrown.
+
+
+%% I think there is no need for a similar restriction concerning buffered
+%% channels.  Using a buffered channel in the above scenario, no communication
+%% would be possible at step~1 only if both channels are empty.  But in this
+%% case, the communications in steps~2 and~3 would be able to proceed
+%% immediately, without call-backs.  However, this usage is currently
+%% prevented.
+
+%%%%%
+
+\subsection*{Implementation notes}
+
+Much of the complexity of the implementation is within the implementation of
+channels: these are implemented to be able to interact with alts.  Where that
+implementation is common between synchronous and buffered channels, it is
+implemented in one of |InPort|, |OutPort| or |Chan|, as appropriate.  
+
+ 
+\end{document}

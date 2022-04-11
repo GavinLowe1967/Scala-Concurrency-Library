@@ -67,19 +67,22 @@ object TrapeziumTest{
 
   def main(args: Array[String]) = {
     // parse arguments
-    var doCompareExact = false; var buffChan = false
+    var doCompareExact = false; var buffering = -1
     var doBagOfTasks = false; var doBagOfTasksObjects = false
     var i = 0; var reps = 10_000L
     while(i < args.length) args(i) match{
       case "--compareExact" => doCompareExact = true; i += 1
       case "--bagOfTasks" => doBagOfTasks = true; i += 1
       case "--bagOfTasksObjects" => doBagOfTasksObjects = true; i += 1
-      case "--buffChan" => buffChan = true; i += 1
+      // case "--buffChan" => buffChan = true; i += 1
+      case "--buffer" => buffering = args(i+1).toInt; i += 2
       case "--reps" => reps = args(i+1).toLong; i += 2
       case arg => println("Argument not recognised: "+arg); sys.exit
     }
     if(doCompareExact) compareExact
 
+    import java.lang.System.nanoTime
+    val start = nanoTime
     for(i <- 0L until reps){
       val (f, p, a, b, nWorkers, n) = pickParams
       val seqResult = new SeqTrapezium(f, a, b, n)()
@@ -88,10 +91,10 @@ object TrapeziumTest{
           val nTasks = 1+random.nextInt(n)
           assert(0 < nTasks && nTasks <= n)
           if(doBagOfTasksObjects)
-            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffChan)()
-          else new TrapeziumBag(f, a, b, n, nWorkers, nTasks, buffChan)()
+            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering)()
+          else new TrapeziumBag(f, a, b, n, nWorkers, nTasks, buffering)()
         }
-        else new Trapezium(f, a, b, n, nWorkers, buffChan)()
+        else new Trapezium(f, a, b, n, nWorkers, buffering)()
       // println(seqResult+"; "+concResult)
       assert(
         seqResult != 0.0 && Math.abs((seqResult-concResult)/seqResult) < 1E-7 ||
@@ -101,7 +104,7 @@ object TrapeziumTest{
           "seqResult = "+seqResult+"; concResult = "+concResult)
       if(i%100 == 0){ print("."); if (i%5_000 == 0) print(i) }
     }
-    println
+    println; println(((nanoTime-start)/1_000_000).toString+"ms")
   } 
 
 }

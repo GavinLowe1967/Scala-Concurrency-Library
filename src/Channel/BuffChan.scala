@@ -7,8 +7,15 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   require(size > 0, 
     s"BuffChan created with capacity $size: must be strictly positive.")
 
-  /** Array holding the data. */
-  private val data = new Array[A](size)
+  /** Is this a one-place buffer?  The implementation is optimised for this
+    * case. */
+  private val singleton = (size == 1)
+
+  /** Array holding the data in the non-singleton case. */
+  private val data = if(singleton) null else new Array[A](size)
+
+  /** In the case of singleton, the datum stored, if length == 1. */
+  private var datum: A = _
 
   /** Index of the first piece of data. */
   private var first = 0
@@ -33,7 +40,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Close the channel. */
   def close() = lock.mutex{
-    isClosed = true; isClosedOut = true
+    isChanClosed = true; isClosedOut = true
     dataAvailable.signalAll(); spaceAvailable.signalAll()
     // Signal to waiting alt, if any
     informAltInPortClosed() // in InPort
@@ -56,8 +63,8 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Reopen the channel. */
   def reopen() = lock.mutex{
-    require(isClosed, s"reopen called of $this, but it isn't closed."); 
-    isClosed = false; isClosedOut = false
+    require(isClosed, s"reopen called on $this, but it isn't closed."); 
+    isChanClosed = false; isClosedOut = false
     length = 0; first = 0; sendingAlt = null; receivingAlt = null
   }
 
@@ -82,7 +89,12 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   /** Store x, and signal to a receiver.  Pre: not closed for sending and
     * length < size. */
   @inline private def storeValue(x: A) = {
-    data((first+length)%size) = x; length += 1
+    if(singleton) datum = x
+    else{
+      var index = first+length; if(index >= size) index -= size
+      data(index) = x
+    }
+    length += 1
     dataAvailable.signal()                      // signal to receiver at (2)
   }
 
@@ -128,7 +140,12 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Complete a receive by removing an item and signalling. */
   @inline protected def completeReceive(): A = {
-    val result = data(first); first = (first+1)%size; length -= 1
+    val result = 
+      if(singleton) datum
+      else{ 
+        val r = data(first); first = first+1; if(first == size) first = 0; r 
+      }
+    length -= 1
     spaceAvailable.signal()                      // signal to sender at (1)
     if(isClosedOut && length == 0) close()
     result
@@ -155,20 +172,4 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
     if(timeout) None
     else Some(completeReceive) // Remove item, signal and return result
   }
-
-
-  // Following might be too strict
-
-  /** Can an alt register at the InPort? */
-  protected def checkCanRegisterIn = {
-    require(receivingAlt == null, s"Inport of channel used in two alts.")
-    require(sendingAlt == null, s"Both ports of channel used in alts.")
-  }
-
-  /** Can an alt register at the OutPort? */
-  protected def checkCanRegisterOut = {
-    require(receivingAlt == null, s"Both ports of channel used in alts.")
-    require(sendingAlt == null, s"Outport of channel used in two alts.")
-  }
-
 }

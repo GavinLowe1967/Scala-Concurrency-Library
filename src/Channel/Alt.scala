@@ -80,11 +80,8 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
           if(opb.guard() && !alreadyRegistered(opb.outPort, offset)){
             opb.outPort.registerOut(this, i, iter, opb.value) match{
               case RegisterOutClosed => enabled(i) = false
-              case RegisterOutSuccess => 
-                //println("Alt: success on registration $iter"); 
-                toRun = i; done = true
+              case RegisterOutSuccess => toRun = i; done = true
               case RegisterOutWaiting => 
-                //println("Alt: unsuccessful registration $iter"); 
                 enabled(i) = true; numEnabled += 1; ports(i) = opb.outPort
             }
           }
@@ -97,17 +94,15 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
 
       if(!done){
         // Wait for something to happen
-        // println(s"Alt waiting $iter")
         while(!done && numEnabled > 0) wait() // wait for something to happen (1)
         if(numEnabled == 0) throw new AltAbort
-        done = true
       }
     } // end of synchronized block
 
     // Either a ready branch was identified during registration, or one called
     // maybeReceive.  Deregister all other branches.  Do this without locking,
     // to avoid blocking call-backs.
-    var i = 0
+    assert(done); var i = 0
     while(i < size){
       if(i != toRun && enabled(i)) branches(i) match{
         case ipb: InPortBranch[_] => ipb.inPort.deregisterIn(this, i, iter)
@@ -141,7 +136,6 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     * corresponds to the current thread sending `value`. */
   private[channel] 
   def maybeReceive[A](value: A, index: Int, iter: Int): Boolean = synchronized{
-    // println(s"maybeReceive($index, $iter): ${!done}")
     assert(iter == this.iter)
     while(registering) wait() // Wait for registration to finish
     assert(iter == this.iter && numEnabled > 0 && enabled(index))
@@ -161,21 +155,18 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     * to the current thread receiving. */
   private[channel] 
   def maybeSend[A](index: Int, iter: Int): Option[A] = synchronized{
-    // println(s"maybeSend($index, $iter)")
     assert(iter == this.iter)
     while(registering) wait() // Wait for registration to finish
     assert(iter == this.iter && numEnabled > 0 && enabled(index))
-    if(done){ /*println("failed");*/ enabled(index) = false; None }
+    if(done){ enabled(index) = false; None }
     else{
       assert(enabled(index)); enabled(index) = false;
-      // println("send in maybeSend")
       branches(index) match{
         case opb: OutPortBranch[A @unchecked] => 
           toRun = index; done = true; notify(); val result = opb.value()
-          // println(s"maybeSend($index, $iter) gives $result")
           Some(result)
           // Note it's important to evaluate opb.value here, before the alt
-          // executed the continuation or goes on to the next iteration, which
+          // executes the continuation or goes on to the next iteration, which
           // might change the state.
       }
     }
@@ -183,7 +174,6 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
 
   /** Receive indication from branch `i` that the port has closed. */
   private[channel] def portClosed(i: Int, iter: Int) = synchronized{
-    // println(s"portClosed $i $iter")
     assert(iter == this.iter)
     while(registering) wait() // Wait for registration to finish
     assert(!registering && enabled(i) && iter == this.iter,

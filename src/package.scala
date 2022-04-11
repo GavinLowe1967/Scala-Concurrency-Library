@@ -4,10 +4,11 @@ package object scl{
   /* Creating and running Computations. */
 
   /** Create a thread that will execute `comp`. */
-  def thread(comp: => Unit) = new Thread(null, comp)
+  @inline def thread(comp: => Unit) = new Computation(List((null, _ => comp)))
 
   /** Create a thread with name `name` that will execute `comp`. */
-  def thread(name: String)(comp: => Unit) = new Thread(name, comp)
+  def thread(name: String)(comp: => Unit) = 
+    new Computation(List((name, _ => comp)))
 
   /** Run the computation `comp`. */
   def run(comp: Computation) = comp.run

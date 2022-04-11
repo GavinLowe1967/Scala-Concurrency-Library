@@ -30,27 +30,39 @@ SCL is heavily influenced by Bernard Sufrin's CSO\@.  Most of the names of
 classes and functions are unchanged.  However, a few changes have been made,
 for example to provide a simpler interface.  
 
-The emphasis in SCL is on pedagogy, rather that out-and-out performance.
+The emphasis in SCL is on pedagogy, rather than out-and-out performance.
 SCL aims to provide a fairly minimal interface, essentially just enough for
 the Concurrent Programming course.  In particular, SCL makes much less use of
 factory methods than CSO.
+
+The classes and top-level functions described below can be obtained by
+including the line
+\begin{scala}
+import ox.scl._
+\end{scala}
+at the top of the file.
 
 %%%%%
 
 \subsection*{Computations}
 
-In SCL, the basic unit of a computation is a \emph{thread} of type |Thread|.
-The declaration \SCALA{thread\{ comp \}} creates a computation that, when run,
-executes |comp|.
-
 A \emph{computation} of type |Computation| represents the parallel composition
-of zero or more threads.  (|Thread| is a subtype of |Computation|.)  As with
-CSO, computations can be combined in parallel using \SCALA{\|\|}.
+of zero or more threads.  The declaration \SCALA{thread\{ comp \}} creates a
+computation that, when run, executes |comp|.  As with CSO, computations can be
+combined in parallel using \SCALA{\|\|}.
+
+%% In SCL, the basic unit of a computation is a \emph{thread} of type |Thread|.
+%% The declaration \SCALA{thread\{ comp \}} creates a computation that, when run,
+%% executes |comp|.
+
+%% A \emph{computation} of type |Computation| represents the parallel composition
+%% of zero or more threads.  (|Thread| is a subtype of |Computation|.)  As with
+%% CSO, computations can be combined in parallel using \SCALA{\|\|}.
 
 \begin{compare}
 \SCALA{thread\{comp\}} & \SCALA{proc\{comp\}} &  
   A thread that, when run, executes \SCALA{comp}. \\
-|Thread| & |PROC| & Type of a thread.  \\
+% |Thread| & |PROC| & Type of a thread.  \\
 |Computation| & |PROC| & Type of a collection of threads. \\
 \SCALA{p \|\| q} & \SCALA{p \|\| q} & Parallel composition of |p| and |q|. \\
 \SCALA{\|\| (ps)} & \SCALA{\|\| (ps)} & Parallel composition of the collection of
@@ -85,17 +97,19 @@ SCL does not provide factory methods for channels, so a channel can be
 constructed with, for example, |new BuffChan[A](size)|\footnote{The type
   \SCALA{A} of data for a \SCALA{BuffChan} must have an associated
   \SCALA{ClassTag}.  When \SCALA{A} is a parametric type parameter, it is
-  enough to give the type bound  \SCALA{A: scala.reflect.ClassTag}.}.
+  enough to give the type bound \SCALA{A: scala.reflect.ClassTag}.  If the
+  parameter~\SCALA{A} is subsequently instantiated with a concrete
+  type~\SCALA{T}, it may be necessary to provide an additional argument
+  \SCALA{scala.reflect.ClassTag(classOf[T])}.}.
 
-As with CSO, a channel comprises an |Inport| and an |OutPort|.  The syntax for
+As with CSO, a channel comprises an |InPort| and an |OutPort|.  The syntax for
 standard sends and receives is unchanged.  The syntax for time-bounded sends
 and receives is changed slightly (see below).  
 
 The syntax for closing channels is mostly unchanged, except the |closeIn|
 operation has been removed (it was equivalent to |close|).  |closeOut| has
 been renamed to |endOfStream| (this operation normally signals the end of a
-stream).  In addition, a |reopen| operation has been added to re-open a closed
-channel.
+stream).  In addition, operations |isClosed| and |reopen| have been added.
 
 
 \begin{compare}
@@ -113,7 +127,8 @@ channel.
 Fully close the channel. \\
 |out.endOfStream| & |out.closeOut| & Close the channel for sending, normally
 signalling the end of the stream. \\
-|c.reopen| & --- & Re-open the channel. 
+|c.isClosed| & --- & Is the channel closed? \\
+|c.reopen| & --- & Re-open a closed channel. 
 \\
 |in.receiveWithin| \gap|(millis)| & |in.readBefore(nanos)| & 
 Receive from |in|, or timeout
@@ -129,7 +144,7 @@ after |millis|~ms\slash |nanos| ns, returning a boolean value.
 \subsection*{Alternation}
 
 The syntax for alternation (|alt| and |serve|) is largely unchanged.  Unlike
-CSO, parentheses should \emph{not} be placed around the guard and port.  The
+CSO, parentheses must \emph{not} be placed around the guard and port.  The
 following example (a two-place buffer) illustrates most of the syntax.
 %
 \begin{scala}
@@ -150,10 +165,14 @@ instance will be ignored). However, the following restrictions remain:
 \item A port may not be simultaneously enabled in two alts.  This restriction
   could be removed without too much difficulty.
 
-\item A channel may not have both of its ports simultaneously enabled in alts.
-  This restriction is fairly necessary for synchronous channels, but, I think,
-  unnecessary for buffered channels.
+\item A channel may not have both of its ports simultaneously enabled in
+  alts.  Such usage could lead to a deadlock.
+  %% This restriction is fairly necessary for synchronous channels, but, I think,
+  %% unnecessary for buffered channels.
 \end{itemize}
+%
+The implementation checks the above restrictions, throwing an exception if
+they are broken. 
 
 As with CSO, the expressions defining the ports are evaluated \emph{once} when
 a |serve| is created, and not subsequently re-evaluated. 
@@ -225,7 +244,7 @@ accumulation.
 
 \subsection*{Semaphores}
 
-Semaphores in SCL are very similar to as in CSO\.  An exception is that the
+Semaphores in SCL are very similar to as in CSO\@.  An exception is that the
 |up| operation \emph{requires} that the semaphore is in the down state (a call
 of |up| when the semaphore is already up is normally a programming error).  
 

@@ -46,7 +46,7 @@ $(TESTDIR)/ConfigSet.class $(TESTDIR)/MyBitMapSet.class				\
 $(TESTDIR)/UndoConfig.class $(TESTDIR)/QLTHistory.class
 
 $(TESTDIR)/Configuration.class $(TESTDIR)/ConfigSet.class:	Testing/Configuration.scala Testing/ConfigSet.scala 
-	$(FSC) -d .. Testing/Configuration.scala Testing/Config.scala
+	$(FSC) -d .. Testing/Configuration.scala Testing/ConfigSet.scala
 
 # Logging for sequential generic testers
 TESTING_GEN_LOG = $(TESTDIR)/GenericThreadLog.class				\
