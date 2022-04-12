@@ -113,7 +113,7 @@ class SyncChan[A] extends Chan[A]{
     }
 
   /** Try to send `x` within `nanos` nanoseconds.  
-    * @returns boolean indicating whether send successful. */
+    * @return boolean indicating whether send successful. */
   def sendBeforeNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos; // var timeout = false
     // Wait until !full || isClosed, but for at most nanos ns.

@@ -6,12 +6,12 @@ trait OutPort[A] extends Port{
   def !(x: A): Unit
 
   /** Try to send `x` within `millis` milliseconds.  
-    * @returns boolean indicating whether send successful. */
+    * @return boolean indicating whether send successful. */
   def sendBefore(millis: Long)(x: A): Boolean = 
-    sendBeforeNanos(millis*1_000_000)(x)
+    sendBeforeNanos(millis*1000000)(x)
 
   /** Try to send `x` within `nanos` nanoseconds.  
-    * @returns boolean indicating whether send successful. */
+    * @return boolean indicating whether send successful. */
   def sendBeforeNanos(nanos: Long)(x: A): Boolean
 
   /** Close the channel for sending, signalling the end of the stream. */

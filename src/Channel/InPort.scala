@@ -8,7 +8,7 @@ trait InPort[A] extends Port{
   /** Try to receive within `millis` milliseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
   def receiveBefore(millis: Long): Option[A] =
-    receiveBeforeNanos(millis*1_000_000)
+    receiveBeforeNanos(millis*1000000)
 
   /** Try to receive within `nanos` nanoseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */

@@ -1,11 +1,14 @@
 DIR = ../ox/scl
 
-FSC = fsc -cp /home/gavin/Scala/SCL
+CP = /home/gavin/Scala/SCL
+
+FSC = fsc -cp $(CP)
 
 all:   $(DIR)/package.class 
 
 clean:
 	rm $(DIR)/*.class $(DIR)/*/*.class $(DIR)/../cads/*/*.class; fsc -shutdown
+
 
 ##### Top-level
 
@@ -94,6 +97,16 @@ DEBUGDIR = $(DIR)/debug
 ##### Complete package
 
 $(DIR)/package.class: $(DIR)/ThreadGroup.class $(CHANNELS) $(DEBUGDIR)/Log.class $(LOCK_CPTS) $(TESTING_SOLVERS) $(CHANDIR)/Alt.class
+
+##### Scaladoc
+
+SCALADOCCP = /home/gavin/Scala/SCL:/home/gavin/Scala/CADS:/home/gavin/bin/scala-2.13.1/lib/scala-library.jar
+
+SCALADOC_FILES = Stopped.scala Lock/*.scala Channel/*.scala Debug/Log.scala	\
+Testing/*.scala ThreadGroup.scala package.scala
+
+doc:
+	scaladoc -classpath $(SCALADOCCP)  -d ../Scaladoc $(SCALADOC_FILES)
 
 ##### Recipes
 

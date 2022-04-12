@@ -106,7 +106,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   }
 
   /** Try to send `x` within `nanos` nanoseconds.  
-    * @returns boolean indicating whether send successful. */
+    * @return boolean indicating whether send successful. */
   def sendBeforeNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos
     val timeout = !spaceAvailable.awaitNanos(nanos, length < size || isClosedOut)

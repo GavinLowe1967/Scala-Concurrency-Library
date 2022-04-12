@@ -5,8 +5,7 @@ Write up alt design -- done
 
 Maybe trim what is included in linearizability testing
 
-Change name of Computation? Threads?  ThreadGroup? 
-
+Change name of Computation? Threads?  ThreadGroup? -- done
 
 Specialise BuffChan for singletons? -- done; it's not clear how useful this is. 
 
@@ -15,6 +14,8 @@ Pass branches to alt by name, type => AltBranch, evaluate on each iteration.
 Allow port to be included in multiple alts? 
 
 Experiment on barriers: is O(log n) version faster (for suitable n)?
+
+Improve scaladoc
 
 
 Remaining examples
@@ -31,7 +32,7 @@ Exercises:
 - Sheet 2 done
 - Sheet 3 done
 - Later MenWomen, Mod3 examples done
-- Sheet 4 TO DO 
+- Sheet 4 done
 
 
 ==================================================================

@@ -102,7 +102,7 @@ class Condition(lock: Lock){
     lock.acquire                                    // reacquire the lock
     if(wasInterrupted)
       Thread.currentThread.interrupt     // reassert interrupt status 
-    if(!myInfo.ready) waiters -= myInfo
+    if(!myInfo.ready) waiters -= myInfo // .subtractOne(myInfo) // -= myInfo
     myInfo.ready
   }
 
