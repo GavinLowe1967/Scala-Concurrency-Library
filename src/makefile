@@ -2,7 +2,8 @@ DIR = ../ox/scl
 
 CP = /home/gavin/Scala/SCL
 
-FSC = fsc -cp $(CP)
+FSC = fsc -deprecation  -cp $(CP) 
+# -deprecation
 
 all:   $(DIR)/package.class 
 
@@ -106,7 +107,7 @@ SCALADOC_FILES = Stopped.scala Lock/*.scala Channel/*.scala Debug/Log.scala	\
 Testing/*.scala ThreadGroup.scala package.scala
 
 doc:
-	scaladoc -classpath $(SCALADOCCP)  -d ../Scaladoc $(SCALADOC_FILES)
+	scaladoc -classpath $(SCALADOCCP) -d ../Scaladoc $(SCALADOC_FILES)
 
 ##### Recipes
 

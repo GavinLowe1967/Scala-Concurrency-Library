@@ -6,7 +6,7 @@ trait Chan[A] extends InPort[A] with OutPort[A]{
 
   /** Reopen the channel.  Precondition: the channel is closed, and no threads
     * are trying to send or receive. */
-  def reopen(): Unit
+  def reopen: Unit
 
   // ======================================== Registration rules
 

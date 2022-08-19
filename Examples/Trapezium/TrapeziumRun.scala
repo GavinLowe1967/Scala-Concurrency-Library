@@ -19,6 +19,7 @@ object TrapeziumRun{
     var reps = 1 // # repetitions
     var buffering = -1 // amount of buffering
     var bagOfTasks = false; var numTasks = -1
+    var bagOfTasksMonitors = false
     var size: Long = 1L<<28 // Number of intervals
     // var syncChan = false; 
     var profiling = false
@@ -28,20 +29,24 @@ object TrapeziumRun{
       case "-p" => p = args(i+1).toInt; i += 2
       case "--reps" => reps = args(i+1).toInt; i += 2
       case "--bagOfTasks" => bagOfTasks = true; i += 1
+      case "--bagOfTasksMonitors" => bagOfTasksMonitors = true; i += 1
       case "--numTasks" => numTasks = args(i+1).toInt; i += 2
       case "--size" => size = args(i+1).toLong; i += 2
       case "--buffering" => buffering = args(i+1).toInt; i += 2
       // case "--syncChan" => syncChan = true; i += 1
       case "--profile" => profiling = true; i += 1
-      case arg => println("Unrecognised argument: "+arg); sys.exit
+      case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
     assert(p > 0)
-    if(bagOfTasks) assert(numTasks > 0)
+    if(bagOfTasks || bagOfTasksMonitors) assert(numTasks > 0)
  
     val start = System.nanoTime
     def trap =
       if(bagOfTasks)
         new TrapeziumBag(f, a, b, n=size, nWorkers=p, nTasks=numTasks, buffering)
+      else if(bagOfTasksMonitors)
+        new TrapeziumBagObjects(f, a, b, n=size, nWorkers=p, nTasks=numTasks, 
+          useMonitor=true)
       else new Trapezium(f, a, b, size, p, buffering)
     if(profiling){      
       def filter(frame: StackTraceElement) : Boolean = {

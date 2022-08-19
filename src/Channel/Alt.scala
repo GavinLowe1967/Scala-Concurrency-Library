@@ -3,7 +3,8 @@ package ox.scl.channel
 class AltAbort  extends ox.scl.Stopped
 
 /** An `alt` construct, with branches corresponding to `branches`. */ 
-class Alt(branches: Array[AtomicAltBranch]) extends AltT{
+// class Alt(branches: Array[AtomicAltBranch]) extends AltT{
+class Alt(branches: => AltBranch) extends AltT{
   /* The execution of an Alt goes through several steps.
    * 
    * 1. Registration: the Alt registers itself with the ports of its branches.
@@ -27,9 +28,11 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
    * the lock of the port: this implies that after deregistration of a port,
    * there can be no subsequent call-back from that port.  */
 
-// FIXME: store place to start registration from one iteration to the next. 
+  /** Have we yet initialised size, enabled, ports? */
+  private var initialised = false
 
-  private val size = branches.length
+  /** The number of branches.  Set on the first iteration. */
+  private var size = -1 
 
   /** Is this still registering with other branches? */
   private var registering = true
@@ -37,11 +40,14 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
   /** Has the alt fired? */
   private var done = false
 
-  /** Which branches are enabled? */
-  private val enabled = new Array[Boolean](size)
+  /** The branches.  Re-evaluated on each iteration. */
+  private var theseBranches: Array[AtomicAltBranch] = null
 
-  /** The ports for each branch. */
-  private val ports = new Array[Port](size)
+  /** Which branches are enabled?  Initialised on the first iteration. */
+  private var enabled: Array[Boolean] = null
+
+  /** The ports for each branch.  Initialised on the first iteration.*/
+  private var ports: Array[Port] = null
 
   /** How many branches are enabled? */
   private var numEnabled = 0
@@ -58,14 +64,22 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
 
   /** Run this alt once. */
   private [scl] def apply(): Unit = { 
+    // Unpack branches for this iteration.  This also evaluates the guards and
+    // ports to use.
+    theseBranches = branches.unpack.toArray
+    if(initialised) assert(size == theseBranches.length)
+    else{
+      size = theseBranches.length; enabled = new Array[Boolean](size)
+      ports = new Array[Port](size); initialised = true
+    }
     assert(numEnabled == 0 && enabled.forall(_ == false) && !done)
     var offset = 0; synchronized{ registering = true }
     // Register with each branch
     while(offset < size && !done){
       val i = (registerFirst+offset)%size
-      branches(i) match{
+      theseBranches(i) match{
         case ipb: InPortBranch[_] => 
-          if(ipb.guard() && !alreadyRegistered(ipb.inPort, offset)){
+          if(ipb.guard && !alreadyRegistered(ipb.inPort, offset)){
             ipb.inPort.registerIn(this, i, iter) match{
               case RegisterInClosed => enabled(i) = false
               case RegisterInSuccess(x) => 
@@ -77,7 +91,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
             }
           }
         case opb: OutPortBranch[_] =>
-          if(opb.guard() && !alreadyRegistered(opb.outPort, offset)){
+          if(opb.guard && !alreadyRegistered(opb.outPort, offset)){
             opb.outPort.registerOut(this, i, iter, opb.value) match{
               case RegisterOutClosed => enabled(i) = false
               case RegisterOutSuccess => toRun = i; done = true
@@ -104,7 +118,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     // to avoid blocking call-backs.
     assert(done); var i = 0
     while(i < size){
-      if(i != toRun && enabled(i)) branches(i) match{
+      if(i != toRun && enabled(i)) theseBranches(i) match{
         case ipb: InPortBranch[_] => ipb.inPort.deregisterIn(this, i, iter)
         case opb: OutPortBranch[_] => opb.outPort.deregisterOut(this, i, iter)
       } // end of match
@@ -112,14 +126,14 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     } // end of while loop
 
     // Run ready branch.
-    branches(toRun) match{
+    theseBranches(toRun) match{
       case ipb: InPortBranch[_] => ipb.body(ipb.valueReceived)
       case opb: OutPortBranch[_] => opb.cont()
     }
     registerFirst = toRun+1 // First branch to register next time
   }
 
-  /** Is port p already registered, within branches
+  /** Is port p already registered, within theseBranches
     * [registerFirst..registerFirst+n) (mod size)? */
   private def alreadyRegistered(p: Port, n: Int): Boolean = {
     var i = 0; var found = false
@@ -142,7 +156,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     if(done){ enabled(index) = false; false }
     else{
       assert(enabled(index)); enabled(index) = false
-      branches(index) match{
+      theseBranches(index) match{
         case ipb: InPortBranch[A @unchecked] =>
           ipb.valueReceived = value; toRun = index // Store value in the branch
           done = true; notify()                // signal to apply() at (1)
@@ -161,7 +175,7 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     if(done){ enabled(index) = false; None }
     else{
       assert(enabled(index)); enabled(index) = false;
-      branches(index) match{
+      theseBranches(index) match{
         case opb: OutPortBranch[A @unchecked] => 
           toRun = index; done = true; notify(); val result = opb.value()
           Some(result)
@@ -197,5 +211,4 @@ class Alt(branches: Array[AtomicAltBranch]) extends AltT{
     try{ while(true){ apply(); reset } }
     catch{ case _: ox.scl.Stopped   => {}; case t: Throwable => throw t }
   }
-  // ox.scl.repeat{ apply(); reset }
 }

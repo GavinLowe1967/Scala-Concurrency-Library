@@ -28,7 +28,7 @@ class SyncChan[A] extends Chan[A]{
   // ================================= Closing
 
   /** Close the channel. */
-  def close() = lock.mutex{
+  def close = lock.mutex{
     isChanClosed = true
     // Signal to waiting threads
     slotEmptied.signalAll(); slotFull.signalAll(); continue.signalAll()
@@ -41,14 +41,14 @@ class SyncChan[A] extends Chan[A]{
   // def closeIn() = close()
 
   /** Close the channel for sending: this closes the whole channel. */
-  def endOfStream() = close()
+  def endOfStream = close
 
   /** Is the channel closed for output? */
   def isClosedOut = isClosed
 
   /** Reopen the channel.  Precondition: the channel is closed, and no threads
     * are trying to send or receive. */
-  def reopen() = lock.mutex{
+  def reopen = lock.mutex{
     require(isClosed, s"reopen called of $this, but it isn't closed.") 
     isChanClosed = false; full = false; sendingAlt = null; receivingAlt = null
   }
@@ -67,7 +67,7 @@ class SyncChan[A] extends Chan[A]{
                                 // wait for previous value to be consumed (1)
     checkOpen
     if(tryAltReceive(x))        // Send to an alt, if possible (in InPort)
-      slotEmptied.signal        // signal to another sender at (1), (1') or (1'')
+      slotEmptied.signal()      // signal to another sender at (1), (1') or (1'')
     else{
       value = x; full = true    // deposit my value
       completeSend
@@ -114,7 +114,7 @@ class SyncChan[A] extends Chan[A]{
 
   /** Try to send `x` within `nanos` nanoseconds.  
     * @return boolean indicating whether send successful. */
-  def sendBeforeNanos(nanos: Long)(x: A): Boolean = lock.mutex{
+  def sendWithinNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos; // var timeout = false
     // Wait until !full || isClosed, but for at most nanos ns.
     val timeout = !slotEmptied.awaitNanos(nanos, !full || isClosed)
@@ -164,12 +164,12 @@ class SyncChan[A] extends Chan[A]{
     result match{
       case Some(x) => /* println("second-attempt tryAltSend"); */  x
       case None => 
-        assert(full); completeReceive    // clear slot, signal and return result
+        assert(full); completeReceive  // clear slot, signal and return result
     }
   }
 
   /** Complete a receive by clearing the slot and signalling. */
-  @inline protected def completeReceive(): A = {
+  @inline protected def completeReceive: A = {
     full = false            // clear value
     continue.signal()       // notify current sender at (2) or (2')
     slotEmptied.signal()    // notify next sender at (1) or (1')
@@ -178,7 +178,7 @@ class SyncChan[A] extends Chan[A]{
 
   /** Try to receive within `nanos` nanoseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
-  def receiveBeforeNanos(nanos: Long): Option[A] = lock.mutex{
+  def receiveWithinNanos(nanos: Long): Option[A] = lock.mutex{
     val deadline = nanoTime+nanos
     checkOpen
     // Try to receive from an alt first

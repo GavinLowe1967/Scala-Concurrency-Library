@@ -19,7 +19,7 @@ class Closed extends ox.scl.Stopped
 
 /** Trait corresponding to the interface an alt presents to its branches and
   * ports. */
-trait AltT{
+private[channel] trait AltT{
   /** Potentially receive `value` from the InPort with index `i` on iteration
     * `iter`. */
   private[channel] def maybeReceive[A](value: A, i: Int, iter: Int): Boolean
@@ -35,7 +35,7 @@ trait AltT{
 // ==================================================================
 
 /** The base class of branches of an Alt. */
-trait AltBranch{
+private[scl] trait AltBranch{
   /** Combine this with other, to produce a choice between two branches. */
   def | (other: AltBranch) = new InfixAltBranch(this, other)
 
@@ -46,13 +46,15 @@ trait AltBranch{
 // ==================================================================
 
 /** An atomic AltBranch, i.e. offering no choice. */
-trait AtomicAltBranch extends AltBranch{
+private[channel] trait AtomicAltBranch extends AltBranch{
   private[scl] def unpack = List(this)
 }
 
 // ==================================================================
 
 /** The combination of two AltBranches. */
+private[channel] 
 class InfixAltBranch(left: AltBranch, right: AltBranch) extends AltBranch{
   private[scl] def unpack = left.unpack ++ right.unpack
+  // The above is a little inefficient
 }

@@ -15,7 +15,7 @@ object TrapeziumTest{
   val MaxCoeff = 100
 
   /** Random Double in [-max, max). */
-  def uniform(max: Double): Double = max*(2*random.nextDouble-1)
+  def uniform(max: Double): Double = max*(2*random.nextDouble()-1)
 
   /** Create a random polynomial. */
   def mkPoly: Polynomial = 
@@ -41,7 +41,7 @@ object TrapeziumTest{
     // function to evaluate
     val p = mkPoly; val f = evalPoly(p)(_)
     // limits
-    val a = uniform(10); val b = a+10*random.nextDouble
+    val a = uniform(10); val b = a+10*random.nextDouble()
     // Number of workers
     val nWorkers = 1+random.nextInt(16)
     // Number of intervals
@@ -68,16 +68,19 @@ object TrapeziumTest{
   def main(args: Array[String]) = {
     // parse arguments
     var doCompareExact = false; var buffering = -1
-    var doBagOfTasks = false; var doBagOfTasksObjects = false
+    var doBagOfTasks = false; var doBagOfTasksObjects = false; 
+    var doBagOfTasksObjectsMonitor = false
     var i = 0; var reps = 10_000L
     while(i < args.length) args(i) match{
       case "--compareExact" => doCompareExact = true; i += 1
       case "--bagOfTasks" => doBagOfTasks = true; i += 1
       case "--bagOfTasksObjects" => doBagOfTasksObjects = true; i += 1
+      case "--bagOfTasksObjectsMonitor" => 
+        doBagOfTasksObjectsMonitor = true; i += 1
       // case "--buffChan" => buffChan = true; i += 1
       case "--buffer" => buffering = args(i+1).toInt; i += 2
       case "--reps" => reps = args(i+1).toLong; i += 2
-      case arg => println("Argument not recognised: "+arg); sys.exit
+      case arg => println("Argument not recognised: "+arg); sys.exit()
     }
     if(doCompareExact) compareExact
 
@@ -87,11 +90,13 @@ object TrapeziumTest{
       val (f, p, a, b, nWorkers, n) = pickParams
       val seqResult = new SeqTrapezium(f, a, b, n)()
       val concResult =
-        if(doBagOfTasks || doBagOfTasksObjects){
+        if(doBagOfTasks || doBagOfTasksObjects || doBagOfTasksObjectsMonitor){
           val nTasks = 1+random.nextInt(n)
           assert(0 < nTasks && nTasks <= n)
           if(doBagOfTasksObjects)
-            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering)()
+            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering, false)()
+          else if(doBagOfTasksObjectsMonitor)
+            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering, true)()
           else new TrapeziumBag(f, a, b, n, nWorkers, nTasks, buffering)()
         }
         else new Trapezium(f, a, b, n, nWorkers, buffering)()
@@ -104,7 +109,7 @@ object TrapeziumTest{
           "seqResult = "+seqResult+"; concResult = "+concResult)
       if(i%100 == 0){ print("."); if (i%5_000 == 0) print(i) }
     }
-    println; println(((nanoTime-start)/1_000_000).toString+"ms")
+    println(); println(((nanoTime-start)/1_000_000).toString+"ms")
   } 
 
 }

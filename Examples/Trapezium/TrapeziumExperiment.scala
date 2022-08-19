@@ -18,8 +18,6 @@ object TrapeziumExperiment{
   val hostname = getEnv("hostname") // java.lang.System.getenv("hostname")
   println(s"hostname: $hostname")
 
-
-
   /** Classpath.  Note: this needs to be edited. */
   val cp =
     if(hostname == "Gavin--T5500") "-cp .:/home/gavin/Scala/SCL"
@@ -47,6 +45,23 @@ object TrapeziumExperiment{
 
   // var syncChan = false
   var server = false
+
+  /** Amount of buffering to use (in experiments not concerning buffering). */
+  var buffering = 0
+
+  /** Number of workers to use in linear experiments. */
+  def numsWorkers =
+    if(server) ((32 to 60 by 4)++(61 to 67)++(68 to 96 by 4)).toArray
+    else ((10 to 16 by 2)++(17 to 23)++(24 to 32 by 2)).toArray
+
+  // (logSize, logNumTasks) pairs, indicating the experiment should be run
+  // on an integral of size 2^logSize, and with 2^logNumTasks tasks.
+  def pairs =
+      if(server) Array((22,8), (24,10), (26,12), (28,14))
+        // Array((29,12), (29,13), (29,14) /*, (29,15), (29,16)*/) 
+        // Array((22,8), (24,10), (26,12), (26,11), (28,14), (28,13))
+      else Array((26, 13), (24, 12), (22, 11))
+
 
   /** Do a measurement corresponding to each command in cmds.
     * @param params the statistical parameters to use.
@@ -112,7 +127,7 @@ object TrapeziumExperiment{
     for(i <- 0 until plots){
       val size = sizes(i); 
       val reps = if(server) (1L << 28)/size else (1L << 27)/size
-      val cmd1 = cmd0+" --size "+size+" --reps "+reps
+      val cmd1 = s"$cmd0 --size $size --reps $reps --buffering $buffering "
       val cmds = ps.map(p => cmd1+" -p "+p)
       results(i) = doMeasurements(cmds, params, maxTime*10)
     }
@@ -129,18 +144,39 @@ object TrapeziumExperiment{
     outputToFile("trapeziumExperimentLogScale.tex", graphString)
   }
 
-  /** Run experiment for each number of workers in ps, with a linear scale of
-    * workers. */
-  def linearScaleExperiment(ps: Array[Int], params: Experiments.Params) = {
-    val logSize = 28
-    val cmds = ps.map(p => cmd0+" -p "+p+" --size "+(1<<logSize))
-    val results = doMeasurements(cmds, params)
+  /** Run experiment for each number of workers in numsWorkers, with a linear
+    * scale of workers. */
+  def linearScaleExperiment(params: Experiments.Params) = {
+    val total = if(server) 1<<29 else 1<<26
+    val cmd1 =  cmd0+s" --buffering $buffering "
+    val plots = pairs.length
+    val results = new Array[Array[(Double,Double)]](plots)
+
+    // Do measurements
+    for(i <- 0 until plots){
+      val (logSize, _) = pairs(i)
+      val size = 1<<logSize; val reps = total/size
+      val cmd2 =  cmd1+" --size "+size+" --reps "+reps
+      val cmds = numsWorkers.map(p => cmd2+" -p "+p)
+      results(i) = doMeasurements(cmds, params)
+    }
 
     // Produce graphs
-    val options = commonOptions++Array("xlabel = Number of workers")
+    val options = commonOptions++
+      Array("title = Experiment on the numerical integration example.",
+            "xlabel = Number of workers")
+    val plotLabels = pairs.map{ case (logSize, _) => "$n = 2^{"+logSize+"}$" }
     val graphString = 
-      Graphs.makeLinearGraph(
-        options, Array("$n = 2^{"+logSize+"}$"), ps, Array(results))
+      Graphs.makeLinearGraph(options, plotLabels, numsWorkers, results)
+    // val logSize = 28 
+    // val cmds = numsWorkers.map(p => cmd0+" -p "+p+" --size "+(1<<logSize))
+    // val results = doMeasurements(cmds, params)
+
+    // // Produce graphs
+    // val options = commonOptions++Array("xlabel = Number of workers")
+    // val graphString = 
+    //   Graphs.makeLinearGraph(
+    //     options, Array("$n = 2^{"+logSize+"}$"), numsWorkers, Array(results))
     outputToFile("trapeziumExperimentLinearScale.tex", graphString)
   }
 
@@ -148,12 +184,14 @@ object TrapeziumExperiment{
 
   /** Run experiment considering the number of tasks for the bag-of-tasks
     * example. */
-  def numTasksExperiment(numWorkers: Int, params: Experiments.Params) = {
+  def numTasksExperiment(
+      numWorkers: Int, params: Experiments.Params, monitors: Boolean) = {
     val TMax = 4000 // Maximum time we'll consider, in ms
     // numsTasks gives the numbers of tasks
     val tasksPerWorker = (0 to 8).map(1<<_).toArray 
     val numsTasks = tasksPerWorker.map(_*numWorkers)
-    val cmd1 = cmd0+" --bagOfTasks -p "+numWorkers
+    val cmd1 = cmd0+(if(monitors) "--bagOfTasksMonitors" else "--bagOfTasks")+ 
+      s" -p $numWorkers --buffering $buffering "
 
     // sizes gives the number of intervals in the integral
     val logSizes = Array(20, 22, 24, 26, 28)
@@ -180,16 +218,13 @@ object TrapeziumExperiment{
     outputToFile("trapeziumBagExperiment.tex", graphString)
   }
 
-  /** Experiment to find optimal number of workers in the bag-of-tasks example.
-    * @param pairs a list of (logSize, logNumTasks) pairs, indicating the 
-    * experiment should be run on an integral of size 2^logSize, and with
-    * 2^logNumTasks tasks. 
-    * @param total the total number of calulations of f per observation, so 
-    * each integral is repeated total/2^logSize times. */
-  def bagOfTasksNumWorkers(pairs: Array[(Int, Int)],
-                           total: Int, params: Experiments.Params) = {
-    val TMax = 4000
-    val cmd1 = cmd0+" --bagOfTasks"
+  /** Experiment to find optimal number of workers in the bag-of-tasks
+    * example. */
+  def bagOfTasksNumWorkers(params: Experiments.Params, monitors: Boolean) = {
+    val TMax = 2000 
+    val total = if(server) 1<<29 else 1<<26
+    val cmd1 = cmd0+(if(monitors) " --bagOfTasksMonitors" else " --bagOfTasks")+
+      s" --buffering $buffering "
     // Numbers of workers; it might be better to start from 4 = 1<<2 workers
     val numsWorkers = (0 to 8).map(1 << _).toArray
     val plots = pairs.length
@@ -217,19 +252,16 @@ object TrapeziumExperiment{
     outputToFile("trapeziumBagNumsWorkersExperiment.tex", graphString)
   }
 
-  /** Experiment to find optimal number of workers in the bag-of-tasks example.
-    * @param pairs a list of (logSize, logNumTasks) pairs, indicating the 
-    * experiment should be run on an integral of size 2^logSize, and with
-    * 2^logNumTasks tasks. 
-    * @param numsWorkers a list giving the numbers of workers to consider.
-    * @param total the total number of calulations of f per observation, so 
-    * each integral is repeated total/2^logSize times. */
+  /** Experiment to find optimal number of workers in the bag-of-tasks
+    * example. */
   def bagOfTasksNumWorkersLinear(
-    pairs: Array[(Int, Int)], numsWorkers: Array[Int],
-    total: Int, params: Experiments.Params)
-    = {
-    val TMax = 4000
-    val cmd1 = cmd0+" --bagOfTasks"
+      params: Experiments.Params, monitors: Boolean) = {
+    // val TMax = 4000
+    /* With server, (29,12) and (29,13) work well.  (29,14) is noticeably slower
+     * (why?) and has a big improvement at 63 workers (why?)  */
+    val total = if(server) 1<<29 else 1<<26
+    val cmd1 =  cmd0+(if(monitors) " --bagOfTasksMonitors" else " --bagOfTasks")+
+      s" --bagOfTasks --buffering $buffering "
     // Numbers of workers; it might be better to start from 4 = 1<<2 workers
     val plots = pairs.length
     val results = new Array[Array[(Double,Double)]](plots)
@@ -253,10 +285,7 @@ object TrapeziumExperiment{
       "$n = 2^{"+logSize+"}$; $2^{"+logNumTasks+"}$ tasks" }
     val graphString = 
       Graphs.makeLinearGraph(options, plotLabels, numsWorkers, results)
-    println(graphString)
-    val fname = "trapeziumBagNumsWorkersLinearExperiment.tex"
-    Graphs.writeStandAloneFile(fname, graphString)
-    println("Output written to "+fname)
+    outputToFile("trapeziumBagNumsWorkersLinearExperiment.tex", graphString)
   }
 
   /* -------------------- Concerning buffering --------------- */
@@ -299,11 +328,12 @@ object TrapeziumExperiment{
   /** Experiment with different amounts of buffering for different sizes (fixed
     * number of workers). */
   def bufferingExperiment(params: Experiments.Params) = {
-    val logIntervals = Array(15,16,17,18)
+    val logIntervals = if(server) Array(18,19,20,24) else Array(15,16,17,18)
     val intervals = logIntervals.map(1L << _) // (_ << 12)
     val p = if(server) 64 else 8
     val cmd1 = s"$cmd0 -p $p "
-    val cmds = intervals.map(n => s"$cmd1 --size $n --reps "+(1<<26)/n)
+    val total = if(server) 1<<28 else 1<<26 // size * reps
+    val cmds = intervals.map(n => s"$cmd1 --size $n --reps "+(total/n))
     val buffs = (0 to 5).toArray.map(1 << _)   // Amounts of buffering
     val plotLabels = logIntervals.map("$n = 2^{"+_+"}$")
     val graphString = bufferHelper(cmds, plotLabels, buffs, params)
@@ -351,6 +381,7 @@ object TrapeziumExperiment{
     var doNumTasks = false; var doBagNumWorkers = false
     var doBagNumWorkersLinear = false; var doSyncChanExperiment = false
     var doBufferExperiment = false; var doBagBufferExperiment = false
+    var useMonitors = false // for bag of tasks
     var i = 0
     while(i < args.length) args(i) match{
       case "--doLog" => doLog = true; i += 1
@@ -359,6 +390,7 @@ object TrapeziumExperiment{
       case "--doBagNumTasks" => doNumTasks = true; i += 1
       case "--doBagNumWorkers" => doBagNumWorkers = true; i += 1
       case "--doBagNumWorkersLinear" => doBagNumWorkersLinear = true; i += 1
+      case "--useMonitors" => useMonitors = true; i += 1
 
       //case "--doSyncChanExperiment" => doSyncChanExperiment = true; i += 1
 
@@ -369,10 +401,11 @@ object TrapeziumExperiment{
       case "--strict" => params = strictParams; i += 1
       case "--veryStrict" => params = veryStrictParams; i += 1
       case "--server" => server = true; i += 1
+      case "--buffering" => buffering = args(i+1).toInt; i += 2
       // case "--syncChan" => syncChan = true; i += 1
-      case "--help" => println(helpString); sys.exit
+      case "--help" => println(helpString); sys.exit()
       case arg =>
-        println("Unrecognised argument: "+arg+"\n"+helpString); sys.exit
+        println("Unrecognised argument: "+arg+"\n"+helpString); sys.exit()
     }
 
 
@@ -388,39 +421,28 @@ object TrapeziumExperiment{
     if(doLog) logScaleExperiment(if(server) 9 else 6, params)
     // Number of workers, linear scale
     if(doLinear){
-      val ps =
-        if(server)
-          ((48 to 60 by 4)++(61 to 67)++(68 to 124 by 4)++(125 to 132)++(136 to 148 by 4)).toArray
-          // ((20 to 32 by 4)++(33 to 35)++(36 to 60 by 4)++
-          //    (61 to 67)++(68 to 96 by 4)
-          // ).toArray
-        else ((8 to 16 by 2)++(18 to 20)++(22 to 28 by 2)).toArray
-      linearScaleExperiment(ps, params)
+      // val ps =
+      //   if(server)
+      //     ((48 to 60 by 4)++(61 to 67)++(68 to 124 by 4)++(125 to 132)++(136 to 148 by 4)).toArray
+      //     // ((20 to 32 by 4)++(33 to 35)++(36 to 60 by 4)++
+      //     //    (61 to 67)++(68 to 96 by 4)
+      //     // ).toArray
+      //   else ((8 to 16 by 2)++(18 to 20)++(22 to 28 by 2)).toArray
+      linearScaleExperiment(params)
     }
     // Experiment comparing synchronous channels
     //if(doSyncChanExperiment) syncChanExperiment(if(server) 64 else 16)
     // Number of tasks per worker in the bag of tasks example
-    if(doNumTasks) numTasksExperiment(if(server) 64 else 16, params)
+    if(doNumTasks) numTasksExperiment(if(server) 64 else 16, params, useMonitors)
     // Number of workers in the bag of tasks example
-    if(doBagNumWorkers){
-      val pairs =
-        if(server)
-          Array((28,15), /*(26,15),*/ (26,13), (26,11), (24, 11), (22, 9))
-        else Array((26, 13), (24, 12), (22, 11))
-      bagOfTasksNumWorkers(pairs, if(server) 1<<28 else 1<<26, params)
-    }
+    if(doBagNumWorkers) bagOfTasksNumWorkers(params, useMonitors)
     if(doBagNumWorkersLinear){
-      val pairs =
-        if(server)
-          (for(l <- 11 to 15) yield (28,l)).toArray
-          // Array((28,15), (26,15), (26,13), (26,11), (24, 11), (22, 9))
-        else Array((26, 13), (24, 12), (22, 11))
-      val numsWorkers =
-        if(server)
-          ((32 to 60 by 4)++(61 to 67)++(68 to 96 by 4)).toArray
-        else ((10 to 16 by 2)++(17 to 23)++(24 to 32 by 2)).toArray
-      val total = if(server) 1<<28 else 1<<26
-      bagOfTasksNumWorkersLinear(pairs, numsWorkers, total, params)
+      // val pairs =
+      //   if(server)
+      //     (for(l <- 11 to 15) yield (28,l)).toArray
+      //     // Array((28,15), (26,15), (26,13), (26,11), (24, 11), (22, 9))
+      //   else Array((26, 13), (24, 12), (22, 11))
+      bagOfTasksNumWorkersLinear(params, useMonitors)
     }
 
   }

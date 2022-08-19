@@ -43,23 +43,23 @@ package object scl{
   /** Implicit conversion to allow a guard on a branch of an alt. 
     * 
     * Code adapted from Bernard Sufrin's CSO. */ 
-  private[scl] implicit class Guarded(guard: => Boolean){
+  implicit class Guarded(guard: Boolean){
     /** Add a guard to an InPort branch. */
     def &&[A](uipb: channel.UnguardedInPortBranch[A]) = 
-      new channel.InPortBranch(() => guard, uipb.inPort, uipb.body)
+      new channel.InPortBranch(guard, uipb.inPort, uipb.body)
 
     /** Add a guard to an OutPort branch. */
     def &&[A](uopb: channel.UnguardedOutPortBranch[A]) =
-      new channel.OutPortBranch(() => guard, uopb.outPort, uopb.value, uopb.cont)
+      new channel.OutPortBranch(guard, uopb.outPort, uopb.value, uopb.cont)
   }
 
   /** Construct an `alt` from `branches`. */
-  def alt(body: channel.AltBranch) = 
-    new channel.Alt(body.unpack.toArray)()
+  def alt(body: => channel.AltBranch) = new channel.Alt(body)()
+    // new channel.Alt(body.unpack.toArray)()
 
   /** Construct a `serve` from `branches`. */
-  def serve(body: channel.AltBranch) =
-    new channel.Alt(body.unpack.toArray).repeat
+  def serve(body: => channel.AltBranch) = new channel.Alt(body).repeat
+   // new channel.Alt(body.unpack.toArray).repeat
 
   // =======================================================
   /* Make various classes available without full qualification. */
@@ -95,11 +95,17 @@ package object scl{
   /** Buffered channels. */
   type BuffChan[A] = channel.BuffChan[A]
   /** Inports of channels. */
-  type ?[A] = channel.InPort[A]
+  type `?`[A] = channel.InPort[A]
   /** Outports of channels. */
   type ![A] = channel.OutPort[A]
 
+  // Logging
+  /** A log, for use on operating systems that support timestamps properly (not
+    * Windows). */
   type Log[A] = debug.Log[A]
+  /** A log, for use on operating systems that do not support timestamps
+    * properly (e.g. Windows). */
+  type SharedLog[A] = debug.SharedLog[A]
 
   // Linearizability testing
   import ox.cads.testing.LinearizabilityTester.{WorkerType,JITGraph}

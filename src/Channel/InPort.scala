@@ -7,15 +7,15 @@ trait InPort[A] extends Port{
 
   /** Try to receive within `millis` milliseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
-  def receiveBefore(millis: Long): Option[A] =
-    receiveBeforeNanos(millis*1000000)
+  def receiveWithin(millis: Long): Option[A] =
+    receiveWithinNanos(millis*1000000)
 
   /** Try to receive within `nanos` nanoseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
-  def receiveBeforeNanos(nanos: Long): Option[A]
+  def receiveWithinNanos(nanos: Long): Option[A]
 
   /** Close the channel for receiving. */
-  def close(): Unit
+  def close: Unit
 
   /** Create a branch of an Alt from this. */
   def =?=> (body: A => Unit) = new UnguardedInPortBranch(this, body)
@@ -28,7 +28,7 @@ trait InPort[A] extends Port{
 
   /** Complete a receive.  Pre: the port is not closed and there is a value
     * available. */
-  protected def completeReceive(): A
+  protected def completeReceive: A
 
   /** Is the channel closed? */
   protected var isChanClosed = false
@@ -61,7 +61,7 @@ trait InPort[A] extends Port{
     checkCanRegisterIn // In channel implementation
     if(isClosed) RegisterInClosed
     else if(canReceive){
-      val result = completeReceive()           // complete the receive
+      val result = completeReceive           // complete the receive
       RegisterInSuccess(result)
     }
     else{ receivingAlt = (alt, index, iter); RegisterInWaiting }
@@ -104,33 +104,26 @@ trait InPort[A] extends Port{
 // ==================================================================
 
 /** The result of a `registerIn` on an InPort[A]. */
-trait RegisterInResult[+A]
+private [channel] trait RegisterInResult[+A]
 
 /** The InPort passed `result` to the Alt. */
+private [channel] 
 case class RegisterInSuccess[A](result: A) extends RegisterInResult[A]
 
 /** The InPort is closed. */
+private [channel] 
 case object RegisterInClosed extends RegisterInResult[Nothing]
 
 /** The InPort is not currently able to communicate. */
+private [channel] 
 case object RegisterInWaiting extends RegisterInResult[Nothing]
-
-// ==================================================================
-
-/** A guarded InPort used in an alt.  This corresponds to the syntax 
-  * `guard && inPort`.  Deprecated.  */
-/*
-class GuardedInPort[A](guard: () => Boolean, inPort: InPort[A]){
-  def =?=> (body: A => Unit) = new InPortBranch(guard, inPort, body)
-}
- */
 
 // ==================================================================
 
 /** A branch in an alt corresponding to an InPort.  This corresponds to the
   * syntax `guard && inPort =?=> body`. */
-class InPortBranch[A]( 
-  val guard: () => Boolean, val inPort: InPort[A], val body: A => Unit)
+private [scl] class InPortBranch[A]( 
+  val guard: Boolean, val inPort: InPort[A], val body: A => Unit)
     extends AtomicAltBranch{
   /** The value received; filled in by the alt. */
   private[channel] var valueReceived: A = _
@@ -140,6 +133,7 @@ class InPortBranch[A](
 
 /** A branch in an alt corresponding to an InPort with no guard.  This
   * corresponds to the syntax `inPort =?=> body`. */
+private [scl] 
 class UnguardedInPortBranch[A](inPort: InPort[A], body: A => Unit) 
-    extends InPortBranch(() => true, inPort, body)
+    extends InPortBranch(true, inPort, body)
  

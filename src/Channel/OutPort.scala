@@ -7,15 +7,15 @@ trait OutPort[A] extends Port{
 
   /** Try to send `x` within `millis` milliseconds.  
     * @return boolean indicating whether send successful. */
-  def sendBefore(millis: Long)(x: A): Boolean = 
-    sendBeforeNanos(millis*1000000)(x)
+  def sendWithin(millis: Long)(x: A): Boolean = 
+    sendWithinNanos(millis*1000000)(x)
 
   /** Try to send `x` within `nanos` nanoseconds.  
     * @return boolean indicating whether send successful. */
-  def sendBeforeNanos(nanos: Long)(x: A): Boolean
+  def sendWithinNanos(nanos: Long)(x: A): Boolean
 
   /** Close the channel for sending, signalling the end of the stream. */
-  def endOfStream(): Unit
+  def endOfStream: Unit
   // def closeOut(): Unit
 
   /** Create a branch of an Alt from this. */
@@ -101,34 +101,26 @@ trait OutPort[A] extends Port{
 // ==================================================================
 
 /** The result of a `registerOut` on an OutPort[A]. */
-trait RegisterOutResult
+private [channel] trait RegisterOutResult
 
 /** The OutPort communicated with the Alt. */
+private [channel] 
 case object RegisterOutSuccess extends RegisterOutResult
 
 /** The OutPort is closed. */
+private [channel] 
 case object RegisterOutClosed extends RegisterOutResult
 
 /** The OutPort is not currently able to communicate. */
+private [channel] 
 case object RegisterOutWaiting extends RegisterOutResult
-
-// ==================================================================
-
-/** A guarded OutPort used in an alt.  This corresponds to the syntax 
-  * `guard && outPort`.  Deprecated.  */
-/*
-class GuardedOutPort[A](guard: () => Boolean, outPort: OutPort[A]){
-  def =!=> (body: A => Unit) = new OutPortBranch(guard, outPort, body)
-}
- */
-
 
 // ==================================================================
 
 /** A branch in an alt corresponding to an OutPort.  This corresponds to the
   * syntax `guard && outPort =!=> value ==> cont`. */
-class OutPortBranch[A]( 
-  val guard: () => Boolean, val outPort: OutPort[A], 
+private [scl] class OutPortBranch[A]( 
+  val guard: Boolean, val outPort: OutPort[A], 
   val value: () => A, val cont: () => Unit)
     extends AtomicAltBranch{
 }
@@ -137,14 +129,15 @@ class OutPortBranch[A](
 
 /** A branch in an alt corresponding to an OutPort with no guard.  This
   * corresponds to the syntax `outPort =!=> value ==> cont`. */
-class UnguardedOutPortBranch[A](
+private [scl] class UnguardedOutPortBranch[A](
   outPort: OutPort[A], value: () => A, cont: () => Unit)
-    extends OutPortBranch(() => true, outPort, value, cont)
+    extends OutPortBranch(true, outPort, value, cont)
  
 // ==================================================================
 
 /** A branch in an alt corresponding to an OutPort with no guard or
   * continuation.  This corresponds to the syntax `outPort =!=> value`. */
+private [channel] 
 class SimpleOutPortBranch[A](outPort: OutPort[A], value: () => A)
     extends UnguardedOutPortBranch[A](outPort, value, () => {}){
   /** Add a continuation.  This corresponds to the syntax 

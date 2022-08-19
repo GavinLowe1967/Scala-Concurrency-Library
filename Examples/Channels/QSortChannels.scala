@@ -14,7 +14,7 @@ object QSortChannels{
 	repeat{ val n = in?(); if(n < pivot) toLower!n else toHigher!n }
 	// We've received the final input, so close the channels to the
 	// sub-sorters.
-	toHigher.close; toLower.close
+	toHigher.endOfStream; toLower.endOfStream
 
 	// Now output the results
 	repeat{ out!(fromLower?()) }; out!pivot; repeat{ out!(fromHigher?()) }
@@ -45,7 +45,7 @@ object QSortChannelsTest{
     val xs = Array.fill(N)(Random.nextInt(Max))
     val ys = new Array[Int](N)
     val in, out = new SyncChan[Int]
-    def sender = thread{ for(x <- xs) in!x; in.close }
+    def sender = thread{ for(x <- xs) in!x; in.endOfStream }
     def receiver = thread{ var i = 0; repeat{ ys(i) = out?(); i += 1 } }
     run(sender || QSortChannels.qSort(in, out) || receiver)
     assert(xs.sorted.sameElements(ys))

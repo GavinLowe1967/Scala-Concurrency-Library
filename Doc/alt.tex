@@ -194,5 +194,8 @@ channels: these are implemented to be able to interact with alts.  Where that
 implementation is common between synchronous and buffered channels, it is
 implemented in one of |InPort|, |OutPort| or |Chan|, as appropriate.  
 
+The body of a serve is passed as a computation, which is evaluated on each
+iteration.  This is necessary to ensure that the expressions defining the
+ports are evaluated on each iteration. 
  
 \end{document}

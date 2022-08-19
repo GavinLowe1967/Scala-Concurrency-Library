@@ -20,6 +20,13 @@ class Lock{
     }
   }
 
+  /** Acquire the lock `count` times. */
+  private[lock] def acquireMultiple(count: Int) = synchronized{
+    val thisThread = Thread.currentThread; assert(locker != thisThread)
+    while(locked > 0) wait()
+    locked = count; locker = thisThread
+  }
+
   /** Release the lock. */
   def release = synchronized{
     assert(locker == Thread.currentThread,
@@ -29,9 +36,18 @@ class Lock{
     // Otherwise this thread still holds the lock
   }
 
+  /** Release the lock as many times as it is held; return that number. */
+  private[lock] def releaseAll: Int = synchronized{
+    assert(locker == Thread.currentThread,
+      s"Lock held by $locker but unlocked by ${Thread.currentThread}")
+    val numLocked = locked; locked = 0; locker = null; notify(); numLocked
+  }
+
   /** Execute `comp` under mutual exclusion for this lock. */
   def mutex[A](comp: => A): A = {
-    acquire; try{comp} finally{release}
+    acquire; try{comp} finally{ if(locker == Thread.currentThread) release }
+    // Note: the check in the finally clause is in case this thread received
+    // an interrupt while waiting on a condition, so not holding the lock.
   } 
 
   /** Get a condition associated with this lock. */
@@ -47,7 +63,7 @@ class Condition(lock: Lock){
   /** Information about waiting threads. */
   private class ThreadInfo{
     val thread = Thread.currentThread //the waiting thread
-    var ready = false // has this thread received a signal?
+    @volatile var ready = false // has this thread received a signal?
   }
 
   /** Check that the current thread holds the lock. */
@@ -66,14 +82,15 @@ class Condition(lock: Lock){
     var wasInterrupted = false
     // record that I'm waiting
     val myInfo = new ThreadInfo; waiters.enqueue(myInfo) 
-    lock.release                                    // release the lock
+    val numLocked = lock.releaseAll                 // release the lock
     while(!myInfo.ready){
       LockSupport.park()                            // wait to be woken
       if(Thread.interrupted){ myInfo.ready = true; wasInterrupted = true }
-    }
-    lock.acquire                                    // reacquire the lock
+    }                              // reacquire the lock
     if(wasInterrupted)
-      Thread.currentThread.interrupt     // reassert interrupt status 
+      throw new InterruptedException
+      // Thread.currentThread.interrupt()     // reassert interrupt status 
+    lock.acquireMultiple(numLocked)      
   }
 
   /** Wait until `test` is true, rechecking when a signal is received. */
@@ -89,7 +106,7 @@ class Condition(lock: Lock){
     var wasInterrupted = false
     // record that I'm waiting
     val myInfo = new ThreadInfo; waiters.enqueue(myInfo) 
-    lock.release                                    // release the lock
+    val numLocked = lock.releaseAll                   // release the lock
     var remaining = deadline-nanoTime
     while(!myInfo.ready && remaining > 0){
       LockSupport.parkNanos(remaining)               // wait to be woken
@@ -99,10 +116,11 @@ class Condition(lock: Lock){
     // Note: if the deadline is reached, but another thread signals to this
     // thread before it reacquires the lock, then we treat the signal as
     // having been received.
-    lock.acquire                                    // reacquire the lock
     if(wasInterrupted)
-      Thread.currentThread.interrupt     // reassert interrupt status 
-    if(!myInfo.ready) waiters -= myInfo // .subtractOne(myInfo) // -= myInfo
+      throw new InterruptedException
+      //Thread.currentThread.interrupt     // reassert interrupt status 
+    lock.acquireMultiple(numLocked)                  // reacquire the lock
+    if(!myInfo.ready) waiters -= myInfo 
     myInfo.ready
   }
 
@@ -119,11 +137,14 @@ class Condition(lock: Lock){
   }
 
   /** Signal to the first waiting thread. */
-  def signal() = {
+  def signal(): Unit = {
     checkThread
     if(waiters.nonEmpty){
-      val threadInfo = waiters.dequeue
-      threadInfo.ready = true; LockSupport.unpark(threadInfo.thread)
+      val threadInfo = waiters.dequeue()
+      if(!threadInfo.ready){
+        threadInfo.ready = true; LockSupport.unpark(threadInfo.thread)
+      }
+      else signal() // try next one; that thread was interrupted or timed out
     }      
   }
 
@@ -131,7 +152,7 @@ class Condition(lock: Lock){
   def signalAll() = {
     checkThread
     while(waiters.nonEmpty){
-      val threadInfo = waiters.dequeue
+      val threadInfo = waiters.dequeue()
       threadInfo.ready = true; LockSupport.unpark(threadInfo.thread)
     }      
   }

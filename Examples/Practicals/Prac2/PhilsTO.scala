@@ -23,7 +23,7 @@ object PhilsTO{
       Think
       println(s"$me sits"); Pause
       left!Pick; println(s"$me picks up left fork"); Pause
-      if(right.sendBefore(waitTime)(Pick)){
+      if(right.sendWithin(waitTime)(Pick)){
         println(s"$me picks up right fork"); Pause
         println(s"$me eats"); Eat
         left!Drop; Pause; right!Drop; Pause
@@ -34,7 +34,7 @@ object PhilsTO{
         // Pause for a random amount of time so that philosophers get out of
         // sync.  A larger amount of randomness here means they get out of
         // sync faster.
-        left!Drop; Thread.sleep(200+Random.nextInt(200))
+        left!Drop; Thread.sleep(200+Random.nextInt(800))
         println(s"$me leaves")
       }
     }

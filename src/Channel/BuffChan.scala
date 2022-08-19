@@ -39,7 +39,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   protected var isClosedOut = false
 
   /** Close the channel. */
-  def close() = lock.mutex{
+  def close = lock.mutex{
     isChanClosed = true; isClosedOut = true
     dataAvailable.signalAll(); spaceAvailable.signalAll()
     // Signal to waiting alt, if any
@@ -52,9 +52,9 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Close the channel for sending.  The values in the buffer can still be
     * consumed, but then the channel closes completely. */
-  def endOfStream(): Unit = lock.mutex{
+  def endOfStream: Unit = lock.mutex{
     isClosedOut = true
-    if(length == 0) close()
+    if(length == 0) close
     else{
       spaceAvailable.signalAll()
       informAltOutPortClosed() // in OutPort
@@ -62,7 +62,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   }
 
   /** Reopen the channel. */
-  def reopen() = lock.mutex{
+  def reopen = lock.mutex{
     require(isClosed, s"reopen called on $this, but it isn't closed."); 
     isChanClosed = false; isClosedOut = false
     length = 0; first = 0; sendingAlt = null; receivingAlt = null
@@ -83,7 +83,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
     if(receivingAlt != null) assert(length == 0)
     // Try passing to alt first (in InPort)
     if(!tryAltReceive(x)) storeValue(x)
-    else spaceAvailable.signal                 // signal to next sender at (1/1')
+    else spaceAvailable.signal()               // signal to next sender at (1/1')
   }
 
   /** Store x, and signal to a receiver.  Pre: not closed for sending and
@@ -107,7 +107,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Try to send `x` within `nanos` nanoseconds.  
     * @return boolean indicating whether send successful. */
-  def sendBeforeNanos(nanos: Long)(x: A): Boolean = lock.mutex{
+  def sendWithinNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos
     val timeout = !spaceAvailable.awaitNanos(nanos, length < size || isClosedOut)
                                         // wait for space, for at most nanos (1')
@@ -115,7 +115,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
     if(receivingAlt != null) assert(length == 0)
     if(timeout) false
     else if(!tryAltReceive(x)){ storeValue(x); true }
-    else{ spaceAvailable.signal; true }      // signal to next sender at (1/1')
+    else{ spaceAvailable.signal(); true }    // signal to next sender at (1/1')
   }
 
   // ================================= Receiving
@@ -139,7 +139,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   }
 
   /** Complete a receive by removing an item and signalling. */
-  @inline protected def completeReceive(): A = {
+  @inline protected def completeReceive: A = {
     val result = 
       if(singleton) datum
       else{ 
@@ -147,13 +147,13 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
       }
     length -= 1
     spaceAvailable.signal()                      // signal to sender at (1)
-    if(isClosedOut && length == 0) close()
+    if(isClosedOut && length == 0) close
     result
   }
 
   /** Try to receive within `nanos` nanoseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
-  def receiveBeforeNanos(nanos: Long): Option[A] = lock.mutex{
+  def receiveWithinNanos(nanos: Long): Option[A] = lock.mutex{
     checkOpen
     val deadline = nanoTime+nanos
     if(length == 0) tryAltSend match{

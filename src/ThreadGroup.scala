@@ -73,7 +73,7 @@ class ThreadGroup(private val comps: List[(String, Unit => Unit)]){
         try{ comp(()) } catch {
           case thrown: Throwable  =>
             println(s"Thread ${name} terminated by throwing:")
-            thrown.printStackTrace(); sys.exit
+            thrown.printStackTrace(); sys.exit()
         }
       }
     })
@@ -90,7 +90,7 @@ class ThreadGroup(private val comps: List[(String, Unit => Unit)]){
           try{ comp(()) } catch {
             case thrown: Throwable  =>
               println(s"Thread ${name} terminated by throwing:")
-              thrown.printStackTrace(); sys.exit
+              thrown.printStackTrace(); sys.exit()
           }
         }
       })
