@@ -46,10 +46,9 @@ at the top of the file.
 
 \subsection*{Threads}
 
-In SCL, a |ThreadGroup| represents a collection of threads. 
-%% A \emph{computation} of type |Computation| represents the parallel composition
-%% of zero or more threads.  
-The declaration \SCALA{thread\{ comp \}} creates a computation that, when run,
+In SCL, a |ThreadGroup| represents a collection of threads\footnote{Note: this
+  is not the same as the class \SCALA{java.lang.ThreadGroup}.}.  The declaration
+\SCALA{thread\{ comp \}} creates a (singleton) |ThreadGroup| that, when run,
 executes |comp|.  As with CSO, threads can be combined in parallel using
 \SCALA{\|\|}.
 
@@ -68,16 +67,16 @@ executes |comp|.  As with CSO, threads can be combined in parallel using
 |ThreadGroup| & |PROC| & Type of a collection of threads. \\
 \SCALA{p \|\| q} & \SCALA{p \|\| q} & Parallel composition of |p| and |q|. \\
 \SCALA{\|\| (ps)} & \SCALA{\|\| (ps)} & Parallel composition of the collection of
-|Computation|s |ps|.  \\
+|ThreadGroup|s (or |PROC|s) |ps|.  \\
 |run(p)| or |p.run| & |run(p)| or |p()| & Execute the threads |p|. \\
-|fork(p)| or |p.fork| & |p.fork| & Executes |p| in a new JVM thread.
+|fork(p)| or |p.fork| & |p.fork| & Executes |p| in a new JVM thread or threads.
 \end{compare}
 
 Exceptions are treated slightly differently from in CSO\@.  When |run| is
 used, if a thread throws a non-|Stopped| exception, then it is caught, all the
-other threads in the computation are interrupted, and the exception is
+other threads in the |ThreadGroup| are interrupted, and the exception is
 re-thrown.  If a thread throws a |Stopped| exception, then all the other
-threads in the computation are allowed to terminate, at which point the
+threads in the |ThreadGroup| are allowed to terminate, at which point the
 |Stopped| exception is re-thrown.  When |fork| is used, if any exception is
 thrown, the program exits. 
 

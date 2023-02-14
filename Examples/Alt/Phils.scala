@@ -28,7 +28,7 @@ object Phils{
   }
 
   /** A single fork. */
-  def fork(me: Int, left: ?[Command], right: ?[Command]) = thread("Fork"+me){
+  def fork(me: Int, left: `?`[Command], right: `?`[Command]) = thread("Fork"+me){
     serve(
       left =?=> {
         x => assert(x == Pick); val y = left?(); assert(y == Drop)
@@ -43,7 +43,7 @@ object Phils{
   /** The complete system. */ 
   def system = {
     // Channels to pick up and drop the forks:
-    val philToLeftFork, philToRightFork = Array.fill(5)(new SyncChan[Command])
+    val philToLeftFork, philToRightFork = Array.fill(N)(new SyncChan[Command])
     // philToLeftFork(i) is from Phil(i) to Fork(i);
     // philToRightFork(i) is from Phil(i) to Fork((i-1)%N)
     val allPhils = || ( 

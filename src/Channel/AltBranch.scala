@@ -58,3 +58,10 @@ class InfixAltBranch(left: AltBranch, right: AltBranch) extends AltBranch{
   private[scl] def unpack = left.unpack ++ right.unpack
   // The above is a little inefficient
 }
+
+// ==================================================================
+
+/** The combination of several AltBranches. */
+private[scl] class SeqAltBranch(bs: Seq[AltBranch]) extends AltBranch{
+  private[scl] def unpack = bs.toList.flatMap(_.unpack)
+}

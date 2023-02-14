@@ -65,6 +65,7 @@ class RAServer1(clients: Int, numResources: Int, buffChan: Boolean)
       | returnChan =?=> { r => free(r) = true }
       | shutdownChan =?=> { _ =>
           acquireRequestChan.close; returnChan.close; shutdownChan.close
+          acquireReplyChan.foreach(_.close)
       }
     )
   }
@@ -112,7 +113,7 @@ object RA{
       }
       else if(got.nonEmpty){
 	// Return resource
-	val r = got.dequeue
+	val r = got.dequeue()
 	resourceServer.returnResource(me, r)
 	println("Client "+me+" returned resource "+r)
       }
@@ -135,7 +136,7 @@ object RA{
       case "--buffered" => buffered = true; i += 1
       //case "--iters" => iters = args(i+1).toInt; i += 2
       //case "--reps" => reps = args(i+1).toInt; i += 2
-      case arg => println("Unrecognised argument: "+arg); sys.exit
+      case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
     // Create Resource Server object
@@ -233,7 +234,7 @@ class RAServer3(numResources: Int, buffChan: Boolean) extends RAServer{
       }
       | returnChan =?=> { r =>
           if(pending.nonEmpty)
-            pending.dequeue!Some(r) // allocate r to blocked client
+            pending.dequeue()!Some(r) // allocate r to blocked client
           else free(r) = true
       }
       | shutdownChan =?=> { _ =>

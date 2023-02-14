@@ -1,5 +1,8 @@
 package ox
 
+/** The main SCL package object, making most of the library available.
+  * 
+  * Version 1.2. */
 package object scl{
   /* Creating and running ThreadGroups. */
 
@@ -61,6 +64,11 @@ package object scl{
   def serve(body: => channel.AltBranch) = new channel.Alt(body).repeat
    // new channel.Alt(body.unpack.toArray).repeat
 
+  /** Construct the body of an `alt` or `serve` from a sequence of alt
+    * branches. */
+  def | (bs: Seq[channel.AltBranch]): channel.AltBranch =
+    new channel.SeqAltBranch(bs)
+
   // =======================================================
   /* Make various classes available without full qualification. */
 
@@ -94,10 +102,21 @@ package object scl{
   type SyncChan[A] = channel.SyncChan[A] 
   /** Buffered channels. */
   type BuffChan[A] = channel.BuffChan[A]
+
   /** Inports of channels. */
-  type `?`[A] = channel.InPort[A]
+  type InPort[A] = channel.InPort[A]
+  /** Inports of channels. */
+  type ??[A] = InPort[A]
+  /** Inports of channels.  For versions of Scala from 2.13.9, it is necessary
+    * to place the ? in backticks. */
+  type `?`[A] = InPort[A]
+
   /** Outports of channels. */
-  type ![A] = channel.OutPort[A]
+  type OutPort[A] = channel.OutPort[A]
+  /** Outports of channels. */
+  type !![A] = OutPort[A]
+  /** Outports of channels. */
+  type ![A] = OutPort[A]
 
   // Logging
   /** A log, for use on operating systems that support timestamps properly (not

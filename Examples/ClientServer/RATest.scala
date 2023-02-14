@@ -31,7 +31,7 @@ object RATest{
       }
       else if(!got.isEmpty){     // Return resource
         // if(Random.nextInt(1000) == 0) assert(false)
-	val r = got.dequeue
+	val r = got.dequeue()
         log.add(me, ReturnedResource(me, r))
 	resourceServer.returnResource(me, r)
       }
@@ -75,7 +75,7 @@ object RATest{
     val clients = || (for (i <- 0 until p) yield client(i, resourceServer, log))
     try{ run(clients) } finally{ log.toFile("logFile") }
     resourceServer.shutdown
-    if(!checkLog(log.get)) sys.exit
+    if(!checkLog(log.get)) sys.exit()
   }
 
   def main(args: Array[String]) = {
@@ -90,7 +90,7 @@ object RATest{
       case "--buffered" => buffered = true; i += 1
       case "--iters" => iters = args(i+1).toInt; i += 2
       case "--reps" => reps = args(i+1).toInt; i += 2
-      case arg => println("Unrecognised argument: "+arg); sys.exit
+      case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
     // If RSServer runs out of resources, it deadlocks; the following tries to
@@ -110,7 +110,7 @@ object RATest{
       if(r%10 == 0) print(".")
       // println
     }
-    println
+    println()
   }
 
 }

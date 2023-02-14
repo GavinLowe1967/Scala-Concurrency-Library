@@ -89,7 +89,6 @@ object RingFoldTest{
     def f(x: Int, y: Int) = if(assoc) x+y else 2*x+y
     val rf =
       // Note: abbreviating ".apply" to "()" requires the ClassTag
-      // if(assoc) new RingFold1[Int](xs, f, outs)(ClassTag(classOf[Int]))()
       if(assoc) new RingFold1[Int](xs, f, outs).apply()
       else new RingFold[Int](xs, f, outs)()
     run(rf || checker(outs, xs.foldLeft(0)(f)))
@@ -100,7 +99,7 @@ object RingFoldTest{
     for(i <- 0 until 100000){
       doTest(assoc); if(i%200 == 0) print(".")
     }
-    println
+    println()
   }
 
 }
