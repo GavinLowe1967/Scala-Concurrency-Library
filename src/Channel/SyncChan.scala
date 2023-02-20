@@ -190,7 +190,10 @@ class SyncChan[A] extends Chan[A]{
       checkOpen
       if(!timeout && !full) result = tryAltSend
     }
-    if(timeout){ assert(nanoTime-deadline >= 0); None }
+    if(timeout){ 
+      receiversWaiting -= 1 // Change, 14/02/2023
+      assert(nanoTime-deadline >= 0); None
+    }
     else result match{
       case Some(x) => Some(x)
       case None => 

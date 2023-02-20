@@ -7,7 +7,7 @@ CHANNEL_TESTS = $(DIR)/SyncChanTest.class $(DIR)/BuffChanTest.class	\
 $(DIR)/TimeoutTest.class
 
 ALT_TESTS = $(DIR)/AltTest.class $(DIR)/AltSharedTest.class	\
-$(DIR)/AltDupTest.class $(DIR)/AltChannelTest.class
+$(DIR)/AltDupTest.class $(DIR)/AltChannelTest.class $(DIR)/AltWithinTest.class
 
 BARRIER_TESTS =  $(DIR)/BarrierTest.class	\
 $(DIR)/CombiningBarrierTest.class $(DIR)/BarrierExperiment.class
