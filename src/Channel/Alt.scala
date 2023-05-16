@@ -81,7 +81,7 @@ class Alt(branches: => AltBranch) extends AltT{
         case ipb: InPortBranch[_] => 
           if(ipb.guard && !alreadyRegistered(ipb.inPort, offset)){
             ipb.inPort.registerIn(this, i, iter) match{
-              case RegisterInClosed => enabled(i) = false
+              case RegisterInClosed => {} // enabled(i) = false - no need
               case RegisterInSuccess(x) => 
                 ipb.valueReceived = x; toRun = i; done = true
                 // println(s"Alt: success on inport registration $i $iter")
