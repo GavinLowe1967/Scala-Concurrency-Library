@@ -4,8 +4,8 @@ import ox.scl.lock.Lock
 import java.lang.System.nanoTime
 
 /** A synchronous channel passing data of type `A`. */
-class NewSyncChan[A] extends Chan[A]{
-  import NewSyncChan._
+class SyncChan[A] extends Chan[A]{
+  import SyncChan._
 
   /** The current or previous value. */
   private var value = null.asInstanceOf[A]
@@ -160,7 +160,7 @@ class NewSyncChan[A] extends Chan[A]{
     }
     else{
       // assert(status == Empty)
-      value = x; status = Filled    // deposit my value
+      value = x; status = Filled    // deposit my vatlue
       maybeSignalToReceiver
       val success = continue.awaitNanos(deadline-nanoTime)
                                              // wait for receiver (2'')
@@ -169,11 +169,11 @@ class NewSyncChan[A] extends Chan[A]{
       }
       else{
         assert(status == Filled && value == x)
+        if(isClosed){ if(receiversWaiting == 0) throw new Closed else true }
+        else{ assert(!success); status = Empty; signalSlotEmptied(); false }
+
+// Old version
 //if(isClosed && receiversWaiting == 0) throw new Closed
-if(isClosed){ if(receiversWaiting == 0) throw new Closed else true }
-else{ assert(!success); status = Empty; signalSlotEmptied(); false }
-
-
 // status = Empty 
 //         checkOpen
 //         assert(!success); // status = Empty; 
@@ -246,7 +246,7 @@ else{ assert(!success); status = Empty; signalSlotEmptied(); false }
 // =======================================================
 
 /** Companion object. */
-object NewSyncChan{
+object SyncChan{
   /* Values for the status variable. */
   private val Empty = 0 // the slot does not hold a valid value
   private val Filled = 1 // the slot has been filled
