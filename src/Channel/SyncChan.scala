@@ -4,8 +4,8 @@ import ox.scl.lock.Lock
 import java.lang.System.nanoTime
 
 /** A synchronous channel passing data of type `A`. */
-class NewSyncChan[A] extends Chan[A]{
-  import NewSyncChan._
+class SyncChan[A] extends Chan[A]{
+  import SyncChan._
 
   /** The current or previous value. */
   private var value = null.asInstanceOf[A]
@@ -246,7 +246,7 @@ class NewSyncChan[A] extends Chan[A]{
 // =======================================================
 
 /** Companion object. */
-object NewSyncChan{
+object SyncChan{
   /* Values for the status variable. */
   private val Empty = 0 // the slot does not hold a valid value
   private val Filled = 1 // the slot has been filled

@@ -4,7 +4,8 @@ import ox.scl.lock.Lock
 import java.lang.System.nanoTime
 
 /** A synchronous channel passing data of type `A`. */
-class SyncChan[A] extends Chan[A]{
+class OldSyncChan[A] extends Chan[A]{
+  // println("OldSyncChan")
   /** The current or previous value. */
   private var value = null.asInstanceOf[A]
 

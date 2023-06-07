@@ -73,37 +73,41 @@ class Alt(branches: => AltBranch) extends AltT{
       ports = new Array[Port](size); initialised = true
     }
     assert(numEnabled == 0 && enabled.forall(_ == false) && !done)
-    var offset = 0; synchronized{ registering = true }
-    // Register with each branch
-    while(offset < size && !done){
-      val i = (registerFirst+offset)%size
-      theseBranches(i) match{
-        case ipb: InPortBranch[_] => 
-          if(ipb.guard && !alreadyRegistered(ipb.inPort, offset)){
-            ipb.inPort.registerIn(this, i, iter) match{
-              case RegisterInClosed => {} // enabled(i) = false - no need
-              case RegisterInSuccess(x) => 
-                ipb.valueReceived = x; toRun = i; done = true
-                // println(s"Alt: success on inport registration $i $iter")
-              case RegisterInWaiting => 
-                enabled(i) = true; numEnabled += 1; ports(i) = ipb.inPort
-                // println(s"Alt: failure on inport registration $i $iter");
-            }
-          }
-        case opb: OutPortBranch[_] =>
-          if(opb.guard && !alreadyRegistered(opb.outPort, offset)){
-            opb.outPort.registerOut(this, i, iter, opb.value) match{
-              case RegisterOutClosed => enabled(i) = false
-              case RegisterOutSuccess => toRun = i; done = true
-              case RegisterOutWaiting => 
-                enabled(i) = true; numEnabled += 1; ports(i) = opb.outPort
-            }
-          }
-      } // end of match
-      offset += 1
-    } // end of while
-
+    var offset = 0; 
+    // synchronized{ registering = true }
+    // Note: previous version did not hold lock during registration; 
     synchronized{
+      registering = true
+      // Register with each branch
+      while(offset < size && !done){
+        val i = (registerFirst+offset)%size
+        theseBranches(i) match{
+          case ipb: InPortBranch[_] =>
+            if(ipb.guard && !alreadyRegistered(ipb.inPort, offset)){
+              ipb.inPort.registerIn(this, i, iter) match{
+                case RegisterInClosed => {} // enabled(i) = false - no need
+                case RegisterInSuccess(x) =>
+                  ipb.valueReceived = x; toRun = i; done = true
+                // println(s"Alt: success on inport registration $i $iter")
+                case RegisterInWaiting =>
+                  enabled(i) = true; numEnabled += 1; ports(i) = ipb.inPort
+                  // println(s"Alt: failure on inport registration $i $iter");
+              }
+            }
+          case opb: OutPortBranch[_] =>
+            if(opb.guard && !alreadyRegistered(opb.outPort, offset)){
+              opb.outPort.registerOut(this, i, iter, opb.value) match{
+                case RegisterOutClosed => enabled(i) = false
+                case RegisterOutSuccess => toRun = i; done = true
+                case RegisterOutWaiting =>
+                  enabled(i) = true; numEnabled += 1; ports(i) = opb.outPort
+              }
+            }
+        } // end of match
+        offset += 1
+      } // end of while
+
+    // synchronized{
       registering = false; notifyAll() // wake up blocked call-backs
 
       if(!done){
@@ -150,12 +154,14 @@ class Alt(branches: => AltBranch) extends AltT{
     * corresponds to the current thread sending `value`. */
   private[channel] 
   def maybeReceive[A](value: A, index: Int, iter: Int): Boolean = synchronized{
-    assert(iter == this.iter)
-    while(registering) wait() // Wait for registration to finish
+    assert(!registering && iter == this.iter)
+    // while(registering) wait() // Wait for registration to finish
     assert(iter == this.iter && numEnabled > 0 && enabled(index))
-    if(done){ enabled(index) = false; false }
+    enabled(index) = false
+    if(done) false // { enabled(index) = false; false }
     else{
-      assert(enabled(index)); enabled(index) = false
+      // assert(enabled(index)); 
+      // enabled(index) = false
       theseBranches(index) match{
         case ipb: InPortBranch[A @unchecked] =>
           ipb.valueReceived = value; toRun = index // Store value in the branch
@@ -169,12 +175,14 @@ class Alt(branches: => AltBranch) extends AltT{
     * to the current thread receiving. */
   private[channel] 
   def maybeSend[A](index: Int, iter: Int): Option[A] = synchronized{
-    assert(iter == this.iter)
-    while(registering) wait() // Wait for registration to finish
+    assert(!registering && iter == this.iter)
+    // while(registering) wait() // Wait for registration to finish
     assert(iter == this.iter && numEnabled > 0 && enabled(index))
-    if(done){ enabled(index) = false; None }
+    enabled(index) = false;
+    if(done) None // { enabled(index) = false; None }
     else{
-      assert(enabled(index)); enabled(index) = false;
+      // assert(enabled(index)); 
+      // enabled(index) = false;
       theseBranches(index) match{
         case opb: OutPortBranch[A @unchecked] => 
           toRun = index; done = true; notify(); val result = opb.value()
@@ -188,8 +196,8 @@ class Alt(branches: => AltBranch) extends AltT{
 
   /** Receive indication from branch `i` that the port has closed. */
   private[channel] def portClosed(i: Int, iter: Int) = synchronized{
-    assert(iter == this.iter)
-    while(registering) wait() // Wait for registration to finish
+    assert(!registering && iter == this.iter)
+    // while(registering) wait() // Wait for registration to finish
     assert(!registering && enabled(i) && iter == this.iter,
       s"$registering, $iter, ${this.iter}")
     if(!done){

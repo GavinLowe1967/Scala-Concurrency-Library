@@ -27,7 +27,9 @@ $(LOCKDIR)/Lock.class
 
 CHANDIR = $(DIR)/channel
 
-CHANNELS = $(CHANDIR)/SyncChan.class $(CHANDIR)/BuffChan.class 
+CHANNELS = $(CHANDIR)/SyncChan.class $(CHANDIR)/BuffChan.class $(CHANDIR)/OldSyncChan.class
+
+# FIXME: Remove OldSyncChan
 
 $(CHANDIR)/InPort.class $(CHANDIR)/OutPort.class: $(CHANDIR)/AltBranch.class
 $(CHANDIR)/Chan.class: $(CHANDIR)/InPort.class $(CHANDIR)/OutPort.class $(DIR)/Stopped.class
