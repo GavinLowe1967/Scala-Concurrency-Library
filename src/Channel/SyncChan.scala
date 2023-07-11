@@ -5,7 +5,7 @@ import java.lang.System.nanoTime
 
 /** A synchronous channel passing data of type `A`. */
 class SyncChan[A] extends Chan[A]{
-  import SyncChan._
+  import SyncChan._ 
 
   /** The current or previous value. */
   private var value = null.asInstanceOf[A]

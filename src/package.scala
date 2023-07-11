@@ -56,13 +56,18 @@ package object scl{
       new channel.OutPortBranch(guard, uopb.outPort, uopb.value, uopb.cont)
   }
 
-  /** Construct an `alt` from `branches`. */
+  /** Construct an `alt` from `body`. */
   def alt(body: => channel.AltBranch) = new channel.Alt(body)()
     // new channel.Alt(body.unpack.toArray)()
 
-  /** Construct a `serve` from `branches`. */
-  def serve(body: => channel.AltBranch) = new channel.Alt(body).repeat
-   // new channel.Alt(body.unpack.toArray).repeat
+  /** Construct a `serve` from `body`, which repeats until no branch is
+    * feasible. */
+  def serve(body: => channel.AltBranch) = new channel.Alt(body).repeat(true)
+
+  /** Construct a `serve` from `body`, which repeats while `guard` is true or
+    * until no branch is feasible. */
+  def serve(guard: => Boolean)(body: => channel.AltBranch) = 
+    new channel.Alt(body).repeat(guard)
 
   /** Construct the body of an `alt` or `serve` from a sequence of alt
     * branches. */

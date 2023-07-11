@@ -214,9 +214,10 @@ class Alt(branches: => AltBranch) extends AltT{
     numEnabled = 0; toRun = -1; iter += 1; done = false
   }
 
-  /** Run this repeatedly. */
-  private[scl] def repeat = {
-    try{ while(true){ apply(); reset } }
+  /** Run this repeatedly while `guard` is true, or until no branch is
+    * feasible. */
+  private[scl] def repeat(guard: => Boolean) = {
+    try{ while(guard){ apply(); reset } }
     catch{ case _: ox.scl.Stopped   => {}; case t: Throwable => throw t }
   }
 }
