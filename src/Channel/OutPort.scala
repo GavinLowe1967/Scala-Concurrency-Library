@@ -5,6 +5,9 @@ trait OutPort[A] extends Port{
   /** Send `x` on the channel. */
   def !(x: A): Unit
 
+  /** Send `x` on the channel. */
+  def send(x: A): Unit = this!x
+
   /** Try to send `x` within `millis` milliseconds.  
     * @return boolean indicating whether send successful. */
   def sendWithin(millis: Long)(x: A): Boolean = 

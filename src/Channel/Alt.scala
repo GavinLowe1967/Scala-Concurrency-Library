@@ -74,7 +74,6 @@ class Alt(branches: => AltBranch) extends AltT{
     }
     assert(numEnabled == 0 && enabled.forall(_ == false) && !done)
     var offset = 0; 
-    // synchronized{ registering = true }
     // Note: previous version did not hold lock during registration; 
     synchronized{
       registering = true
@@ -107,8 +106,8 @@ class Alt(branches: => AltBranch) extends AltT{
         offset += 1
       } // end of while
 
-    // synchronized{
-      registering = false; notifyAll() // wake up blocked call-backs
+      registering = false 
+      // notifyAll() // wake up blocked call-backs; no longer needed
 
       if(!done){
         // Wait for something to happen
@@ -158,10 +157,8 @@ class Alt(branches: => AltBranch) extends AltT{
     // while(registering) wait() // Wait for registration to finish
     assert(iter == this.iter && numEnabled > 0 && enabled(index))
     enabled(index) = false
-    if(done) false // { enabled(index) = false; false }
+    if(done) false
     else{
-      // assert(enabled(index)); 
-      // enabled(index) = false
       theseBranches(index) match{
         case ipb: InPortBranch[A @unchecked] =>
           ipb.valueReceived = value; toRun = index // Store value in the branch
@@ -179,10 +176,8 @@ class Alt(branches: => AltBranch) extends AltT{
     // while(registering) wait() // Wait for registration to finish
     assert(iter == this.iter && numEnabled > 0 && enabled(index))
     enabled(index) = false;
-    if(done) None // { enabled(index) = false; None }
+    if(done) None
     else{
-      // assert(enabled(index)); 
-      // enabled(index) = false;
       theseBranches(index) match{
         case opb: OutPortBranch[A @unchecked] => 
           toRun = index; done = true; notify(); val result = opb.value()

@@ -5,6 +5,9 @@ trait InPort[A] extends Port{
   /** Receive on the inport. */
   def ?(u: Unit): A
 
+  /** Receive on the inport. */
+  def receive(): A = this?()
+
   /** Try to receive within `millis` milliseconds. 
     * @return `Some(x)` if `x` received, otherwise `None`. */
   def receiveWithin(millis: Long): Option[A] =
