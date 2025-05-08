@@ -23,13 +23,13 @@ package object scl{
   def || (comps: Seq[ThreadGroup]): ThreadGroup = ThreadGroup.||(comps)
 
   /** Repeatedly perform `body`. */
-  @inline def repeat(body: => Unit): Unit = {
+  @inline def repeat[A](body: => A): Unit = {
     try{ while(true)(body) }
     catch{ case _: Stopped   => {}; case t: Throwable => throw t }
   }
 
   /** Repeatedly perform `body` while `guard` is true. */
-  @inline def repeat(guard: => Boolean)(body: => Unit): Unit = {
+  @inline def repeat[A](guard: => Boolean)(body: => A): Unit = {
     try{ while(guard)(body) }
     catch{ case _: Stopped   => {}; case t: Throwable => throw t }
   }
@@ -114,6 +114,8 @@ package object scl{
   type ??[A] = InPort[A]
   /** Inports of channels.  For versions of Scala from 2.13.9, it is necessary
     * to place the ? in backticks. */
+  @deprecated("\"?\" type constructor no longer supported: use \"??\"",
+    "07-05-2025")
   type `?`[A] = InPort[A]
 
   /** Outports of channels. */
@@ -121,6 +123,8 @@ package object scl{
   /** Outports of channels. */
   type !![A] = OutPort[A]
   /** Outports of channels. */
+  @deprecated("\"!\" type constructor no longer supported: use \"!!\"",
+    "07-05-2025")
   type ![A] = OutPort[A]
 
   // Logging
