@@ -18,7 +18,7 @@ trait OutPort[A] extends Port{
   def sendWithinNanos(nanos: Long)(x: A): Boolean
 
   /** Close the channel for sending, signalling the end of the stream. */
-  def endOfStream: Unit
+  def endOfStream(): Unit
   // def closeOut(): Unit
 
   /** Create a branch of an Alt from this. */

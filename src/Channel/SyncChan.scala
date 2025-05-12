@@ -51,7 +51,7 @@ class SyncChan[A] extends Chan[A]{
   // ================================= Closing
 
   /** Close the channel. */
-  def close = lock.mutex{
+  def close() = lock.mutex{
     if(!isChanClosed){
       isChanClosed = true
       // Signal to waiting threads
@@ -64,14 +64,14 @@ class SyncChan[A] extends Chan[A]{
   }
 
   /** Close the channel for sending: this closes the whole channel. */
-  def endOfStream = close
+  def endOfStream() = close()
 
   /** Is the channel closed for output? */
   def isClosedOut = isClosed
 
   /** Reopen the channel.  Precondition: the channel is closed, and no threads
     * are trying to send or receive. */
-  def reopen = lock.mutex{
+  def reopen() = lock.mutex{
     require(isClosed, s"reopen called of $this, but it isn't closed.") 
     require(receiversWaiting == 0 && !altWaiting, 
       s"reopen called of $this, but a thread is still waiting in it.")

@@ -9,28 +9,30 @@ object AltDupTest{
 
   var buffChan = false
 
-  val verbose = false
+  var verbose = false
 
   /** Tagger process.  This has the same InPort in both branches. */
-  def tagger[T](l: ?[T], out: ![(Int, T)]) = thread("tagger"){
+  def tagger[T](l: ??[T], out: !![(Int, T)]) = thread("tagger"){
     serve( 
       l =?=> { x => out!(0, x) }
       | l =?=> { x => out!(1, x) }
     )
     // println("tagger closed")
-    l .close; out.endOfStream
+    l .close(); out.endOfStream()
   }
 
   /** Sender that sends [0..N) on c. */
   def sender(c: Chan[Int]) = thread(s"sender $c"){ 
     var i = 0
     repeat(i < N){ Thread.sleep(Random.nextInt(3)); c!i; i += 1 }
-    c.close
+    if(verbose) println("Sender closing")
+    c.endOfStream()
   }
 
-  def receiver(out: ?[(Int,Int)]) = thread("receiver"){
+  def receiver(out: ??[(Int,Int)]) = thread("receiver"){
     var expected = 0; var expectedTag = 0
     while(expected < N){
+      if(verbose) println(s"receiver: $expected")
       val (i,x) = out?(); if(verbose) println(s"receiver received ($i, $x)")
       assert(x == expected && x < N && i == expectedTag,
         s"Received ($i, $x); expected ($expectedTag, $expected)")
@@ -40,7 +42,7 @@ object AltDupTest{
   } 
 
   /** Another tagger.  This has the same OutPort in both branches. */
-  def tagger2[T](l: ?[T], out: ![(Int, T)]) = thread("tagger2"){
+  def tagger2[T](l: ??[T], out: !![(Int, T)]) = thread("tagger2"){
     var x = l?()
     serve(
       out =!=> (0,x) ==> { x = l?() }
@@ -65,10 +67,11 @@ object AltDupTest{
       case "--reps" => reps = args(i+1).toInt; i += 1
       case "--buffChan" => buffChan = true; i += 1
       case "--test2" => doTest1 = false; i += 1
+      case "--verbose" => verbose = true; i += 1
     }
 
     for(i <- 0 until reps){ doTest(doTest1); if(i%10 == 0) print(".") }
-    println
+    println()
   }
 
 }

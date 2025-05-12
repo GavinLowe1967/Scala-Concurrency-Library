@@ -5,10 +5,10 @@ import ox.scl._
 /** Test of an alt where the channel expressions are re-evaluated on each
   * branch. */
 object AltChannelTest{
-  val c1, c2 = new SyncChan[Int]
+  var c1, c2: Chan[Int] = null //  = new SyncChan[Int]
 
   val iters = 20
-  val reps = 20
+  var reps = 20
   val start2 = 100
 
   /** An alt that alternates between channels c1 and c2 using a conditional
@@ -25,18 +25,26 @@ object AltChannelTest{
     assert(exp1 == iters && exp2 == iters+start2)
   }
 
-  def sender(c: ![Int], start: Int) = thread{
+  def sender(c: !![Int], start: Int) = thread{
     for(i <- 0 until iters) c!(i+start)
-    c.endOfStream
+    c.endOfStream()
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until reps){
-      if(i > 0){ c1.reopen; c2.reopen }
-      run(sender(c1,0) || sender(c2,start2) || altThread)
-      print(".")
+    var i = 0; var buffering = 0
+    while(i < args.length) args(i) match{
+      case "--buffering" => buffering = args(i+1).toInt; i += 2
+      case "--reps" => reps = args(i+1).toInt; i += 2
     }
-    println
+    c1 = if(buffering > 0) new BuffChan[Int](buffering) else new SyncChan[Int]
+    c2 = if(buffering > 0) new BuffChan[Int](buffering) else new SyncChan[Int]
+
+    for(i <- 0 until reps){
+      if(i > 0){ c1.reopen(); c2.reopen() }
+      run(sender(c1,0) || sender(c2,start2) || altThread)
+      if(i%50 == 0) print(".")
+    }
+    println()
   }
 
 

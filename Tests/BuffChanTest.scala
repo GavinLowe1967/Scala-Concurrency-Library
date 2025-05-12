@@ -21,7 +21,7 @@ object BuffChanTest{
 
   /** A worker for the LinTesters */
   def worker(me: Int, log: LinearizabilityLog[SeqChan, ConcChan]) = {
-    val random = new scala.util.Random(scala.util.Random.nextInt+me*45207)
+    val random = new scala.util.Random(scala.util.Random.nextInt()+me*45207)
     for(i <- 0 until iters){
       if(me%2 == 0){
         val x = random.nextInt(MaxVal)
@@ -39,7 +39,7 @@ object BuffChanTest{
       case "--iters" => iters = args(i+1).toInt; i += 2 
       case "--reps" => reps = args(i+1).toInt; i += 2 
       case "--size" => size = args(i+1).toInt; i += 2
-      case arg => println("Unrecognised argument: "+arg); sys.exit
+      case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
     for(r <- 0 until reps){
@@ -49,6 +49,6 @@ object BuffChanTest{
       assert(tester() > 0)
       if(r%50 == 0) print(".")
     } // end of for loop
-    println
+    println()
   }
 }

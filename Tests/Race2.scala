@@ -22,6 +22,6 @@ object Race2{
     for(i <- 0 until 10000){ 
       run(system); assert(x == 0); if(i%100 == 0) print(".") 
     }
-    println
+    println()
   }
 }

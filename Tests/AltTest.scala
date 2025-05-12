@@ -7,7 +7,7 @@ import scala.util.Random
   * passes them to a receiver. */
 object AltTest{
   /** Tagger process. */
-  def tagger[T](l: ?[T], r: ?[T], out: ![(Int, T)]) = thread("tagger"){
+  def tagger[T](l: ??[T], r: ??[T], out: !![(Int, T)]) = thread("tagger"){
     serve( 
       true && Random.nextInt(5) != 0 && l =?=> { x =>
         /*println(s"received $x on l");*/ out!(0, x) }
@@ -15,7 +15,7 @@ object AltTest{
         /*println(s"received $x on r");*/ out!(1, x) }
     )
     // println("tagger closed")
-    l .close; r.close; out.endOfStream
+    l .close(); r.close(); out.endOfStream()
   }
 
   /** Number of values sent on each channel per test. */
@@ -27,10 +27,10 @@ object AltTest{
     repeat(i < N){ Thread.sleep(Random.nextInt(2)); c!i; i += 1 }
     // println(s"sender $c done")
     Thread.sleep(Random.nextInt(2))
-    c.close
+    c.endOfStream()
   }
     
-  def receiver(out: ?[(Int,Int)]) = thread("receiver"){
+  def receiver(out: ??[(Int,Int)]) = thread("receiver"){
     val nexts = new Array[Int](2) // expected next values
     repeat(nexts.exists(_ < N)){
       val (i,x) = out?(); // println(s"receiver received ($i, $x)");
@@ -61,7 +61,7 @@ object AltTest{
     }
 
     for(i <- 0 until reps){ doTest; if(i%10 == 0) print(".") }
-    println
+    println()
   }
 
 }

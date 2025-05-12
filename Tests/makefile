@@ -24,4 +24,4 @@ FSC = fsc -cp .:/home/gavin/Scala/SCL
 
 
 $(DIR)/%.class:     %.scala
-	$(FSC) -d .. $<
+	$(FSC) -d .. -deprecation $<

@@ -23,8 +23,6 @@ object AltWithinTest{
   def mkChan: Chan[Int] = 
     if(buffering == 0) new SyncChan[Int] else new BuffChan[Int](buffering)
 
-
-
   /** Test of receiveWithin. */
   def test1 = {
     val c = mkChan
@@ -45,7 +43,7 @@ object AltWithinTest{
       }
     }
     val senders = thread{
-      run(|| (for(i <- 0 until numSenders) yield sender(i))); c.endOfStream
+      run(|| (for(i <- 0 until numSenders) yield sender(i))); c.endOfStream()
     }
     val receivers = || (for(_ <- 0 until numReceivers) yield receiver)
     run(senders || receivers)
@@ -69,7 +67,7 @@ object AltWithinTest{
       }
     }
     val senders = thread{
-      run(|| (for(i <- 0 until numSenders) yield sender(i))); c.endOfStream
+      run(|| (for(i <- 0 until numSenders) yield sender(i))); c.endOfStream()
     }
     val receivers = || (for(_ <- 0 until numReceivers) yield receiver)
     run(senders || receivers)
@@ -99,7 +97,7 @@ object AltWithinTest{
       }
     }
     val senders = thread{
-      run(|| (for(i <- 0 until numSenders) yield sender(i))); c.endOfStream
+      run(|| (for(i <- 0 until numSenders) yield sender(i))); c.endOfStream()
     }
     val receivers = || (for(_ <- 0 until numReceivers) yield receiver)
     run(senders || receivers)
@@ -121,7 +119,7 @@ object AltWithinTest{
         Thread.sleep(Random.nextInt(6))
         if(c.sendWithin(2)(i)) sent(i) = true else print("X")
       }
-      c.endOfStream
+      c.endOfStream()
     }
     def receiver = thread{
       serve(
@@ -166,7 +164,7 @@ object AltWithinTest{
             { j += 1; Thread.sleep(Random.nextInt(3)) }
         )
       )
-      cs.foreach(_.endOfStream)
+      cs.foreach(_.endOfStream())
     }
     val receivers = || (for(i <- 0 until numReceivers) yield receiver(i))
     run(sender || receivers)
@@ -176,6 +174,9 @@ object AltWithinTest{
   /** Test where receivers use timeout for a fixed number of iterations, then
     * close channel.  An alt sends repeatedly. */
   def test6 = {
+    require(buffering == 0, "test6 requires synchronous channels")
+    // ... the sender could successfully send; but the receiver might close
+    // and so not receive.
     val cs = Array.fill(numReceivers)(mkChan)
     val maxSends = iters * numReceivers // max number of sends
     val size = maxSends * numReceivers // range of values sent
@@ -194,7 +195,7 @@ object AltWithinTest{
           case None => print("X")
         }
       }
-      c.close
+      c.close()
     }
     /** Sender that repeatedly sends. */
     def sender = thread{
@@ -227,7 +228,7 @@ object AltWithinTest{
         if(c.sendWithin(2)(x)) sent(x) = true
         else print("X")
       }
-      c.endOfStream
+      c.endOfStream()
     }
     /* Receiver. */
     def receiver = thread{
@@ -264,7 +265,7 @@ object AltWithinTest{
         case 1 => test1; case 2 => test2; case 3 => test3; case 4 => test4
         case 5 => test5; case 6 => test6; case 7 => test7
       }
-      if(i%1 == 0) print(".")
+      if(i%10 == 0) print(".")
     }
     println()
 

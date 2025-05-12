@@ -18,7 +18,7 @@ trait InPort[A] extends Port{
   def receiveWithinNanos(nanos: Long): Option[A]
 
   /** Close the channel for receiving. */
-  def close: Unit
+  def close(): Unit
 
   /** Create a branch of an Alt from this. */
   def =?=> (body: A => Unit) = new UnguardedInPortBranch(this, body)

@@ -42,17 +42,17 @@ object TimeoutTest{
     * and records results in sent. */
   def senderTimeout(c: Chan[Int], sent: Array[Boolean]) = thread{
     for(i <- 0 until iters){
-      val success = c.sendBefore(Delay)(i); sent(i) = success
+      val success = c.sendWithin(Delay)(i); sent(i) = success
       if(verbose) 
         if(success) println(s"sent $i") else println(s"failed to send $i")
     }
-    c.endOfStream
+    c.endOfStream()
   }
 
   /** A thread that sends [0..max) on c. */
   def senderSeq(c: Chan[Int], max: Int, maxDelay: Int = 1) = thread{
     for(i <- 0 until max){ c!i; sleep(Random.nextInt(maxDelay)) }
-    c.endOfStream
+    c.endOfStream()
   }
 
   /** A thread that tries to receive at intervals of Delay ms, and expects to
@@ -61,7 +61,7 @@ object TimeoutTest{
     var expected = 0; var steps = 0
     repeat{
       // sleep(Delay)
-      c.receiveBefore(Delay) match{
+      c.receiveWithin(Delay) match{
         case Some(x) =>
           assert(x == expected); expected += 1; 
           if(verbose) println(s"received $x")
@@ -128,7 +128,7 @@ object TimeoutTest{
         }
         | toSend < iters1 && c3 =!=> { toSend } ==> { toSend += 1 }
       )
-      c3.endOfStream
+      c3.endOfStream()
       assert(nextFrom2 == iters1 && toSend == iters1)
     }
     run(senderTimeout(c1, sent) || senderSeq(c2,iters1) || 
@@ -194,7 +194,7 @@ object TimeoutTest{
         | 
         toSend < iters && c3 =!=> toSend ==> { toSend += 1; pause }
       )
-      c1.close; c3.close
+      c1.close(); c3.close()
       assert(nextFrom2 == iters && toSend == iters)
     }
     run(altThread || receiverSeq(c1, iters, 2*Delay) || 
@@ -207,7 +207,7 @@ object TimeoutTest{
     val received = new Array[Boolean](iters)
     def receiveTimeout(me: Int) = thread{
       repeat{
-        c.receiveBefore(Delay) match{
+        c.receiveWithin(Delay) match{
           case Some(x) => 
             if(verbose) println(s"$me received $x")
             synchronized{ assert(!received(x)); received(x) = true }
@@ -239,7 +239,7 @@ object TimeoutTest{
       case "--iters" => iters = args(i+1).toInt; i += 2
       case "--reps" => reps = args(i+1).toInt; i += 2
       case "--verbose" => verbose = true; i += 1
-      case arg => println(s"Argument not recognised: $arg"); sys.exit
+      case arg => println(s"Argument not recognised: $arg"); sys.exit()
     }
 
     test match{
@@ -247,23 +247,23 @@ object TimeoutTest{
 
       case "sendBefore" => 
         for(i <- 0 until reps){ sendBeforeTest; print(".") }
-        println
+        println()
       case "sharedSendBefore" => 
         for(i <- 0 until reps){ sharedSendBeforeTest; print(".") }
-        println
+        println()
       case "sendBeforeAlt" => 
         for(i <- 0 until reps){ sendBeforeAltTest; print(".") }
-        println
+        println()
 
       case "receiveBefore" => 
         for(i <- 0 until reps){ receiveBeforeTest; print(".") }
-        println
+        println()
       case "sharedReceiveBefore" => 
         for(i <- 0 until reps){ sharedReceiveBeforeTest; print(".") }
-        println
+        println()
       case "receiveBeforeAlt" => 
         for(i <- 0 until reps){ receiveBeforeAltTest; print(".") }
-        println
+        println()
       case "" => println("No test specified")
     }
   }

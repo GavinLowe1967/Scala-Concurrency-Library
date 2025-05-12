@@ -2,26 +2,61 @@ package ox.scl.channel
 
 import java.lang.System.nanoTime
 
-/** A buffered channel with capacity `size`. */
-class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
-  require(size > 0, 
-    s"BuffChan created with capacity $size: must be strictly positive.")
+/** Trait for buffered channels. */
+trait BuffChanT[A] extends Chan[A]{
+  // require(size > 0, 
+  //   s"BuffChan created with capacity $size: must be strictly positive.")
 
-  /** Is this a one-place buffer?  The implementation is optimised for this
-    * case. */
-  private val singleton = (size == 1)
+  // /** Is this a one-place buffer?  The implementation is optimised for this
+  //   * case. */
+  // private val singleton = (size == 1)
 
-  /** Array holding the data in the non-singleton case. */
-  private val data = if(singleton) null else new Array[A](size)
+  // /** Array holding the data in the non-singleton case. */
+  // private val data = if(singleton) null else new Array[A](size)
 
-  /** In the case of singleton, the datum stored, if length == 1. */
-  private var datum: A = _
+  // /** In the case of singleton, the datum stored, if length == 1. */
+  // private var datum: A = _
 
-  /** Index of the first piece of data. */
-  private var first = 0
+  // /** Index of the first piece of data. */
+  // private var first = 0
 
-  /** Number of pieces of data currently held.  Inv: 0 <= length <= size. */
-  private var length = 0
+  // /** Number of pieces of data currently held.  Inv: 0 <= length <= size. */
+  // private var length = 0
+
+  /* This trait defines all the synchronisation/signalling mechanisms for
+   * buffered channels.  The implementations define how the stored data is
+   * implemented, via the following operations. */
+
+  /** Is this channel full? */
+  protected def isFull: Boolean // = length == size
+
+  /** Is this channel empty? */
+  protected def isEmpty: Boolean // = length == 0
+
+  /** Get and remove the first item in the buffer. */
+  protected def get(): A//  = {
+  //   require(length > 0); length -= 1
+  //   if(singleton) datum
+  //   else{
+  //       val r = data(first); first = first+1; if(first == size) first = 0; r 
+  //   }
+  // }
+
+  /** Add `x` to the buffer. */
+  protected def add(x: A): Unit // = {
+  //   require(length < size)
+  //   if(singleton) datum = x
+  //   else{
+  //     var index = first+length; if(index >= size) index -= size
+  //     data(index) = x
+  //   }
+  //   length += 1
+  // }
+
+  /** Clear the buffer. */
+  protected def clear(): Unit // = {
+  //   length = 0; first = 0
+  // }
 
   /* The contents of the buffer is data[first .. first+length) (indices
    * interpreted mod size. */
@@ -39,7 +74,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   protected var isClosedOut = false
 
   /** Close the channel. */
-  def close = lock.mutex{
+  def close() = lock.mutex{
     isChanClosed = true; isClosedOut = true
     dataAvailable.signalAll(); spaceAvailable.signalAll()
     // Signal to waiting alt, if any
@@ -52,9 +87,9 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
 
   /** Close the channel for sending.  The values in the buffer can still be
     * consumed, but then the channel closes completely. */
-  def endOfStream: Unit = lock.mutex{
+  def endOfStream(): Unit = lock.mutex{
     isClosedOut = true
-    if(length == 0) close
+    if(isEmpty) close()
     else{
       spaceAvailable.signalAll()
       informAltOutPortClosed() // in OutPort
@@ -62,10 +97,10 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   }
 
   /** Reopen the channel. */
-  def reopen = lock.mutex{
+  def reopen() = lock.mutex{
     require(isClosed, s"reopen called on $this, but it isn't closed."); 
     isChanClosed = false; isClosedOut = false
-    length = 0; first = 0; sendingAlt = null; receivingAlt = null
+    clear(); sendingAlt = null; receivingAlt = null
   }
 
   /** Check the channel is open, throwing a Closed exception if not. */
@@ -74,13 +109,13 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   // ================================= Sending
 
   /** Is a receive possible in the current state? */
-  @inline protected def canReceive = length > 0
+  @inline protected def canReceive = !isEmpty // length > 0
 
   /** Send `x`. */
   def !(x: A) = lock.mutex{
-    spaceAvailable.await(length < size || isClosedOut) // wait for space (1)
+    spaceAvailable.await(!isFull /*length < size*/ || isClosedOut) // wait for space (1)
     if(isClosedOut) throw new Closed
-    if(receivingAlt != null) assert(length == 0)
+    if(receivingAlt != null) assert(isEmpty)
     // Try passing to alt first (in InPort)
     if(!tryAltReceive(x)) storeValue(x)
     else spaceAvailable.signal()               // signal to next sender at (1/1')
@@ -89,19 +124,20 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   /** Store x, and signal to a receiver.  Pre: not closed for sending and
     * length < size. */
   @inline private def storeValue(x: A) = {
-    if(singleton) datum = x
-    else{
-      var index = first+length; if(index >= size) index -= size
-      data(index) = x
-    }
-    length += 1
+    add(x)
+    // if(singleton) datum = x
+    // else{
+    //   var index = first+length; if(index >= size) index -= size
+    //   data(index) = x
+    // }
+    // length += 1
     dataAvailable.signal()                      // signal to receiver at (2)
   }
 
   /** Try to send the result of `x`, from an alt.  Return true if successful. */
   protected def trySend(x: () => A): Boolean = {
     // println("trySend")
-    if(length < size){ storeValue(x()); true }
+    if(!isFull/*length < size*/){ storeValue(x()); true }
     else false
   }
 
@@ -109,10 +145,10 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
     * @return boolean indicating whether send successful. */
   def sendWithinNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos
-    val timeout = !spaceAvailable.awaitNanos(nanos, length < size || isClosedOut)
+    val timeout = !spaceAvailable.awaitNanos(nanos, !isFull/*length < size*/ || isClosedOut)
                                         // wait for space, for at most nanos (1')
     if(isClosedOut) throw new Closed
-    if(receivingAlt != null) assert(length == 0)
+    if(receivingAlt != null) assert(isEmpty) // length == 0)
     if(timeout) false
     else if(!tryAltReceive(x)){ storeValue(x); true }
     else{ spaceAvailable.signal(); true }    // signal to next sender at (1/1')
@@ -123,7 +159,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   /** Receive a value from this channel. */
   def ?(u: Unit): A = lock.mutex{
     checkOpen
-    if(length == 0) tryAltSend match{
+    if(isEmpty /*length == 0*/) tryAltSend match{
       case Some(x) => x
       case None => waitToReceive
     }
@@ -133,21 +169,22 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   /** Wait to receive a value in this channel.  Pre: the channel is open and
     * there is no sending alt waiting. */
   private def waitToReceive: A = {
-    dataAvailable.await(length > 0 || isClosed)   // wait for data (2)
+    dataAvailable.await(!isEmpty /*length > 0*/ || isClosed)   // wait for data (2)
     checkOpen
     completeReceive // Remove item, signal and return result
   }
 
   /** Complete a receive by removing an item and signalling. */
   @inline protected def completeReceive: A = {
-    val result = 
-      if(singleton) datum
-      else{ 
-        val r = data(first); first = first+1; if(first == size) first = 0; r 
-      }
-    length -= 1
+    val result = get()
+    // val result = 
+    //   if(singleton) datum
+    //   else{ 
+    //     val r = data(first); first = first+1; if(first == size) first = 0; r 
+    //   }
+    // length -= 1
     spaceAvailable.signal()                      // signal to sender at (1)
-    if(isClosedOut && length == 0) close
+    if(isClosedOut && isEmpty /*length == 0*/) close()
     result
   }
 
@@ -156,7 +193,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
   def receiveWithinNanos(nanos: Long): Option[A] = lock.mutex{
     checkOpen
     val deadline = nanoTime+nanos
-    if(length == 0) tryAltSend match{
+    if(isEmpty/*length == 0*/) tryAltSend match{
       case Some(x) => Some(x)
       case None => waitToReceiveBy(deadline)
     }
@@ -167,9 +204,68 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]{
     * the channel is open and there is no sending alt waiting. */
   private def waitToReceiveBy(deadline: Long): Option[A] = {
     val timeout =                   // wait for data until at most deadline (2')
-      !dataAvailable.awaitNanos(deadline-nanoTime, length > 0 || isClosed)
+      !dataAvailable.awaitNanos(deadline-nanoTime, !isEmpty /*length > 0*/ || isClosed)
     checkOpen
     if(timeout) None
     else Some(completeReceive) // Remove item, signal and return result
+  }
+}
+
+// =======================================================
+
+/** A buffered channel with capacity `size`. */
+class BuffChan[A: scala.reflect.ClassTag](size: Int) extends BuffChanT[A]{
+
+  require(size > 0, 
+    s"BuffChan created with capacity $size: must be strictly positive.")
+
+  /** Is this a one-place buffer?  The implementation is optimised for this
+    * case. */
+  //private val singleton = (size == 1)
+
+  /** Array holding the data in the non-singleton case. */
+  private val data = /* if(singleton) null else */ new Array[A](size)
+
+  /* The contents of the buffer is data[first .. first+length) (indices
+   * interpreted mod size. */
+
+  /** In the case of singleton, the datum stored, if length == 1. */
+  private var datum: A = _
+
+  /** Index of the first piece of data. */
+  private var first = 0
+
+  /** Number of pieces of data currently held.  Inv: 0 <= length <= size. */
+  private var length = 0
+
+  /** Is this channel full? */
+  protected def isFull = length == size
+
+  /** Is this channel empty? */
+  protected def isEmpty = length == 0
+
+  /** Get and remove the first item in the buffer. */
+  protected def get(): A = {
+    require(length > 0); length -= 1
+    // if(singleton) datum
+    // else{
+        val r = data(first); first = first+1; if(first == size) first = 0; r 
+    //}
+  }
+
+  /** Add `x` to the buffer. */
+  protected def add(x: A) = {
+    require(length < size)
+    // if(singleton) datum = x
+    // else{
+      var index = first+length; if(index >= size) index -= size
+      data(index) = x
+    //}
+    length += 1
+  }
+
+  /** Clear the buffer. */
+  protected def clear(): Unit = {
+    length = 0; first = 0
   }
 }
