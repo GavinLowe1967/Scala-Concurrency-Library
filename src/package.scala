@@ -105,8 +105,12 @@ package object scl{
   type Chan[A] = channel.Chan[A]
   /** Synchronous channels. */
   type SyncChan[A] = channel.SyncChan[A] 
+  /** Trait for buffered channels. */
+  type BuffChanT[A] = channel.BuffChanT[A]
   /** Buffered channels. */
   type BuffChan[A] = channel.BuffChan[A]
+  /** One-place buffered channels. */
+  type SingletonBuffChan[A] = channel.SingletonBuffChan[A]
 
   /** Inports of channels. */
   type InPort[A] = channel.InPort[A]

@@ -36,8 +36,11 @@ object AltChannelTest{
       case "--buffering" => buffering = args(i+1).toInt; i += 2
       case "--reps" => reps = args(i+1).toInt; i += 2
     }
-    c1 = if(buffering > 0) new BuffChan[Int](buffering) else new SyncChan[Int]
-    c2 = if(buffering > 0) new BuffChan[Int](buffering) else new SyncChan[Int]
+    def initChan = 
+      if(buffering > 1) new BuffChan[Int](buffering) 
+      else if(buffering == 1) new SingletonBuffChan[Int]
+      else new SyncChan[Int]
+    c1 = initChan; c2 = initChan
 
     for(i <- 0 until reps){
       if(i > 0){ c1.reopen(); c2.reopen() }

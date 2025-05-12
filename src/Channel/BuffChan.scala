@@ -4,62 +4,27 @@ import java.lang.System.nanoTime
 
 /** Trait for buffered channels. */
 trait BuffChanT[A] extends Chan[A]{
-  // require(size > 0, 
-  //   s"BuffChan created with capacity $size: must be strictly positive.")
-
-  // /** Is this a one-place buffer?  The implementation is optimised for this
-  //   * case. */
-  // private val singleton = (size == 1)
-
-  // /** Array holding the data in the non-singleton case. */
-  // private val data = if(singleton) null else new Array[A](size)
-
-  // /** In the case of singleton, the datum stored, if length == 1. */
-  // private var datum: A = _
-
-  // /** Index of the first piece of data. */
-  // private var first = 0
-
-  // /** Number of pieces of data currently held.  Inv: 0 <= length <= size. */
-  // private var length = 0
-
   /* This trait defines all the synchronisation/signalling mechanisms for
    * buffered channels.  The implementations define how the stored data is
-   * implemented, via the following operations. */
+   * implemented, via the following operations, each of which is called by a
+   * thread that holds the lock. */
 
   /** Is this channel full? */
-  protected def isFull: Boolean // = length == size
+  protected def isFull: Boolean
 
   /** Is this channel empty? */
-  protected def isEmpty: Boolean // = length == 0
+  protected def isEmpty: Boolean
 
   /** Get and remove the first item in the buffer. */
-  protected def get(): A//  = {
-  //   require(length > 0); length -= 1
-  //   if(singleton) datum
-  //   else{
-  //       val r = data(first); first = first+1; if(first == size) first = 0; r 
-  //   }
-  // }
+  protected def get(): A
 
   /** Add `x` to the buffer. */
-  protected def add(x: A): Unit // = {
-  //   require(length < size)
-  //   if(singleton) datum = x
-  //   else{
-  //     var index = first+length; if(index >= size) index -= size
-  //     data(index) = x
-  //   }
-  //   length += 1
-  // }
+  protected def add(x: A): Unit 
 
   /** Clear the buffer. */
-  protected def clear(): Unit // = {
-  //   length = 0; first = 0
-  // }
+  protected def clear(): Unit
 
-  /* The contents of the buffer is data[first .. first+length) (indices
-   * interpreted mod size. */
+  /* Lock and conditions. */
 
   protected val lock = new ox.scl.lock.Lock
 
@@ -230,7 +195,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends BuffChanT[A]{
    * interpreted mod size. */
 
   /** In the case of singleton, the datum stored, if length == 1. */
-  private var datum: A = _
+  // private var datum: A = _
 
   /** Index of the first piece of data. */
   private var first = 0
@@ -268,4 +233,28 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends BuffChanT[A]{
   protected def clear(): Unit = {
     length = 0; first = 0
   }
+}
+
+// =======================================================
+
+/** A buffered channel of size 1. */
+class SingletonBuffChan[A] extends BuffChanT[A]{
+  /** The contents of the buffer, when `full` is true. */
+  private var datum: A = _
+
+  /** Does the buffer contain a value, namely `datum`? */
+  private var filled = false
+
+  /* This represents the buffer with contents
+   *   if(filled) <datum> else <>. */
+
+  protected def isFull = filled
+
+  protected def isEmpty = !filled
+
+  protected def get() = { require(filled); filled = false; datum }
+
+  protected def add(x: A) = { require(!filled); datum = x; filled = true }
+
+  protected def clear() = filled = false 
 }

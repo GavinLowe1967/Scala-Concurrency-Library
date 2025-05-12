@@ -40,12 +40,14 @@ object AltTest{
     //println("receiver done")
   } 
 
-  // Should the test use buffered channels?
-  var buffChan = false
+  // Should the test use buffered channels, and if so, what size?
+  var buffering = 0
 
   /** Run a single test. */
   def doTest = {
-    val l,r = if(buffChan) new BuffChan[Int](2) else new SyncChan[Int]
+    val l,r = 
+      if(buffering == 1) new SingletonBuffChan[Int] 
+      else if(buffering > 1) new BuffChan[Int](2) else new SyncChan[Int]
     val out = new SyncChan[(Int,Int)]
     val t = tagger(l,r,out)
     val system = t || sender(l) || sender(r) || receiver(out)
@@ -57,7 +59,7 @@ object AltTest{
     var i = 0
     while(i < args.length) args(i) match{
       case "--reps" => reps = args(i+1).toInt; i += 1
-      case "--buffChan" => buffChan = true; i += 1
+      case "--buffering" => buffering = args(i+1).toInt; i += 2
     }
 
     for(i <- 0 until reps){ doTest; if(i%10 == 0) print(".") }

@@ -9,7 +9,7 @@ object BuffChanTest{
   var size = 3    // capacity of the channel
 
   type SeqChan = scala.collection.immutable.Queue[Int]
-  type ConcChan = BuffChan[Int]
+  type ConcChan = BuffChanT[Int]
 
   /* Operations on the specification. */
   def seqSend(x: Int)(q: SeqChan) : (Unit, SeqChan) = {
@@ -43,7 +43,9 @@ object BuffChanTest{
     }
 
     for(r <- 0 until reps){
-      val concChan = new BuffChan[Int](size); val seqChan = Queue[Int]()
+      val concChan = 
+        if(size == 1) new SingletonBuffChan[Int] else  new BuffChan[Int](size)
+      val seqChan = Queue[Int]()
       val tester =
         LinearizabilityTester[SeqChan,ConcChan](seqChan, concChan, p, worker _)
       assert(tester() > 0)

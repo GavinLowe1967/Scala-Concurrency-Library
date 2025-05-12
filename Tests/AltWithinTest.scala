@@ -21,7 +21,9 @@ object AltWithinTest{
   var testNum = 1
 
   def mkChan: Chan[Int] = 
-    if(buffering == 0) new SyncChan[Int] else new BuffChan[Int](buffering)
+    if(buffering == 0) new SyncChan[Int] 
+    else if(buffering == 1) new SingletonBuffChan[Int]
+    else new BuffChan[Int](buffering)
 
   /** Test of receiveWithin. */
   def test1 = {

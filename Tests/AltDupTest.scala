@@ -7,7 +7,7 @@ import scala.util.Random
 object AltDupTest{
   val N = 10
 
-  var buffChan = false
+  var buffering = 0
 
   var verbose = false
 
@@ -53,7 +53,10 @@ object AltDupTest{
   /** Run a single test.  If flag is true use tagger (repeated inport) else use
     * tagger2 (repeated outport). */
   def doTest(flag: Boolean) = {
-    val l = if(buffChan) new BuffChan[Int](2) else new SyncChan[Int]
+    val l = 
+      if(buffering > 1) new BuffChan[Int](buffering)
+      else if(buffering == 1) new SingletonBuffChan[Int]
+      else new SyncChan[Int]
     val out = new SyncChan[(Int,Int)]
     val t = if(flag) tagger(l,out) else tagger2(l,out)
     val system = t || sender(l) || receiver(out)
@@ -65,7 +68,8 @@ object AltDupTest{
     var i = 0
     while(i < args.length) args(i) match{
       case "--reps" => reps = args(i+1).toInt; i += 1
-      case "--buffChan" => buffChan = true; i += 1
+      case "--buffering" => buffering = args(i+1).toInt; i += 2
+      // case "--buffChan" => buffChan = true; i += 1
       case "--test2" => doTest1 = false; i += 1
       case "--verbose" => verbose = true; i += 1
     }
