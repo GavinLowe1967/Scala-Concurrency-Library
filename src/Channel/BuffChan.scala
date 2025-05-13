@@ -258,3 +258,36 @@ class SingletonBuffChan[A] extends BuffChanT[A]{
 
   protected def clear() = filled = false 
 }
+
+// =======================================================
+
+/** An unbounded buffered channel. */
+class UnboundedBuffChan[A] extends BuffChanT[A]{
+  /** We store the contents of the buffer in a linked list constructed from
+    * nodes of the following type. */
+  private class Node(val datum: A){
+    var next: Node = null
+  }
+
+  /** A dummy header node. */
+  private var header = new Node(null.asInstanceOf[A])
+
+  /** The last node in the list. */
+  private var last = header
+
+  /* This represents the buffer with contents <n.datum | n <- L(header.next)>. */
+
+  protected val isFull = false
+
+  protected def isEmpty = header == last
+
+  protected def get() = { header = header.next; header.datum }
+
+  protected def add(x: A) = {
+    val n = new Node(x); last.next = n; last = n
+  }
+
+  protected def clear() = {
+    header = new Node(null.asInstanceOf[A]); last = header
+  }
+}

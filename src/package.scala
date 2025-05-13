@@ -111,6 +111,8 @@ package object scl{
   type BuffChan[A] = channel.BuffChan[A]
   /** One-place buffered channels. */
   type SingletonBuffChan[A] = channel.SingletonBuffChan[A]
+  /** Unbounded buffered channels. */
+  type UnboundedBuffChan[A] = channel.UnboundedBuffChan[A]
 
   /** Inports of channels. */
   type InPort[A] = channel.InPort[A]

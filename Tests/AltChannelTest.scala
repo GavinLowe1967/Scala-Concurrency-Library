@@ -39,6 +39,7 @@ object AltChannelTest{
     def initChan = 
       if(buffering > 1) new BuffChan[Int](buffering) 
       else if(buffering == 1) new SingletonBuffChan[Int]
+      else if(buffering < 0) new UnboundedBuffChan[Int]
       else new SyncChan[Int]
     c1 = initChan; c2 = initChan
 

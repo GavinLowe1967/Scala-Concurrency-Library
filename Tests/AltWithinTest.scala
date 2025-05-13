@@ -23,6 +23,7 @@ object AltWithinTest{
   def mkChan: Chan[Int] = 
     if(buffering == 0) new SyncChan[Int] 
     else if(buffering == 1) new SingletonBuffChan[Int]
+    else if(buffering < 0) new UnboundedBuffChan[Int]
     else new BuffChan[Int](buffering)
 
   /** Test of receiveWithin. */

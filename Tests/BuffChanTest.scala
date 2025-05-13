@@ -6,14 +6,16 @@ import ox.scl._
 object BuffChanTest{
   var iters = 50  // Number of iterations by each worker
   val MaxVal = 20 // Maximum value sent
-  var size = 3    // capacity of the channel
+  var size = 3    // capacity of the channel; negative represents unbounded
+
+  def unbounded = size < 0
 
   type SeqChan = scala.collection.immutable.Queue[Int]
   type ConcChan = BuffChanT[Int]
 
   /* Operations on the specification. */
   def seqSend(x: Int)(q: SeqChan) : (Unit, SeqChan) = {
-    require(q.length < size); ((), q.enqueue(x))
+    require(unbounded || q.length < size); ((), q.enqueue(x))
   }
   def seqReceive(q: SeqChan) : (Int, SeqChan) = {
     require(q.nonEmpty); q.dequeue
@@ -42,9 +44,13 @@ object BuffChanTest{
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
+    if(unbounded && iters > 10) 
+      println("Warning: a smaller value of iters might be better.")
+
     for(r <- 0 until reps){
       val concChan = 
-        if(size == 1) new SingletonBuffChan[Int] else  new BuffChan[Int](size)
+        if(size == 1) new SingletonBuffChan[Int] 
+        else if(size < 0) new UnboundedBuffChan[Int] else new BuffChan[Int](size)
       val seqChan = Queue[Int]()
       val tester =
         LinearizabilityTester[SeqChan,ConcChan](seqChan, concChan, p, worker _)

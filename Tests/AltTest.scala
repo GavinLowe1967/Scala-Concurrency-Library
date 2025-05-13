@@ -47,7 +47,9 @@ object AltTest{
   def doTest = {
     val l,r = 
       if(buffering == 1) new SingletonBuffChan[Int] 
-      else if(buffering > 1) new BuffChan[Int](2) else new SyncChan[Int]
+      else if(buffering > 1) new BuffChan[Int](2)
+      else if(buffering < 0) new UnboundedBuffChan[Int]
+      else new SyncChan[Int]
     val out = new SyncChan[(Int,Int)]
     val t = tagger(l,r,out)
     val system = t || sender(l) || sender(r) || receiver(out)

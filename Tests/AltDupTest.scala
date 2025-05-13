@@ -56,6 +56,7 @@ object AltDupTest{
     val l = 
       if(buffering > 1) new BuffChan[Int](buffering)
       else if(buffering == 1) new SingletonBuffChan[Int]
+      else if(buffering < 0) new UnboundedBuffChan[Int]
       else new SyncChan[Int]
     val out = new SyncChan[(Int,Int)]
     val t = if(flag) tagger(l,out) else tagger2(l,out)
