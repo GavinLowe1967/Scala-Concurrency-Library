@@ -49,7 +49,7 @@ object CombiningBarrierTest{
           assert(res == sum)
           if(!leaving(id)){
             println(s"Error with $p threads.")
-            println(es.take(i+1).mkString("\n")); sys.exit
+            println(es.take(i+1).mkString("\n")); sys.exit()
           }
           leaving(id) = false; numLeaving -= 1
       }
@@ -58,7 +58,7 @@ object CombiningBarrierTest{
 
   def main(args: Array[String]) = {
     for(r <- 0 until reps){ doTest; if(r%10 == 0) print(".") }
-    println
+    println()
   }
 
 

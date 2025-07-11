@@ -74,11 +74,11 @@ trait BuffChanT[A] extends Chan[A]{
   // ================================= Sending
 
   /** Is a receive possible in the current state? */
-  @inline protected def canReceive = !isEmpty // length > 0
+  @inline protected def canReceive = !isEmpty
 
   /** Send `x`. */
   def !(x: A) = lock.mutex{
-    spaceAvailable.await(!isFull /*length < size*/ || isClosedOut) // wait for space (1)
+    spaceAvailable.await(!isFull || isClosedOut) // wait for space (1)
     if(isClosedOut) throw new Closed
     if(receivingAlt != null) assert(isEmpty)
     // Try passing to alt first (in InPort)
@@ -89,20 +89,13 @@ trait BuffChanT[A] extends Chan[A]{
   /** Store x, and signal to a receiver.  Pre: not closed for sending and
     * length < size. */
   @inline private def storeValue(x: A) = {
-    add(x)
-    // if(singleton) datum = x
-    // else{
-    //   var index = first+length; if(index >= size) index -= size
-    //   data(index) = x
-    // }
-    // length += 1
+    add(x)                                      // store x in the buffer
     dataAvailable.signal()                      // signal to receiver at (2)
   }
 
   /** Try to send the result of `x`, from an alt.  Return true if successful. */
   protected def trySend(x: () => A): Boolean = {
-    // println("trySend")
-    if(!isFull/*length < size*/){ storeValue(x()); true }
+    if(!isFull){ storeValue(x()); true }
     else false
   }
 
@@ -110,10 +103,10 @@ trait BuffChanT[A] extends Chan[A]{
     * @return boolean indicating whether send successful. */
   def sendWithinNanos(nanos: Long)(x: A): Boolean = lock.mutex{
     val deadline = nanoTime+nanos
-    val timeout = !spaceAvailable.awaitNanos(nanos, !isFull/*length < size*/ || isClosedOut)
+    val timeout = !spaceAvailable.awaitNanos(nanos, !isFull || isClosedOut)
                                         // wait for space, for at most nanos (1')
     if(isClosedOut) throw new Closed
-    if(receivingAlt != null) assert(isEmpty) // length == 0)
+    if(receivingAlt != null) assert(isEmpty) 
     if(timeout) false
     else if(!tryAltReceive(x)){ storeValue(x); true }
     else{ spaceAvailable.signal(); true }    // signal to next sender at (1/1')
@@ -124,7 +117,7 @@ trait BuffChanT[A] extends Chan[A]{
   /** Receive a value from this channel. */
   def ?(u: Unit): A = lock.mutex{
     checkOpen
-    if(isEmpty /*length == 0*/) tryAltSend match{
+    if(isEmpty) tryAltSend match{
       case Some(x) => x
       case None => waitToReceive
     }
@@ -134,22 +127,15 @@ trait BuffChanT[A] extends Chan[A]{
   /** Wait to receive a value in this channel.  Pre: the channel is open and
     * there is no sending alt waiting. */
   private def waitToReceive: A = {
-    dataAvailable.await(!isEmpty /*length > 0*/ || isClosed)   // wait for data (2)
-    checkOpen
-    completeReceive // Remove item, signal and return result
+    dataAvailable.await(!isEmpty || isClosed)   // wait for data (2)
+    checkOpen; completeReceive // Remove item, signal and return result
   }
 
   /** Complete a receive by removing an item and signalling. */
   @inline protected def completeReceive: A = {
-    val result = get()
-    // val result = 
-    //   if(singleton) datum
-    //   else{ 
-    //     val r = data(first); first = first+1; if(first == size) first = 0; r 
-    //   }
-    // length -= 1
-    spaceAvailable.signal()                      // signal to sender at (1)
-    if(isClosedOut && isEmpty /*length == 0*/) close()
+    val result = get();         // Get result from buffer
+    spaceAvailable.signal()       // signal to sender at (1)
+    if(isClosedOut && isEmpty) close()
     result
   }
 
@@ -158,18 +144,18 @@ trait BuffChanT[A] extends Chan[A]{
   def receiveWithinNanos(nanos: Long): Option[A] = lock.mutex{
     checkOpen
     val deadline = nanoTime+nanos
-    if(isEmpty/*length == 0*/) tryAltSend match{
+    if(isEmpty) tryAltSend match{
       case Some(x) => Some(x)
       case None => waitToReceiveBy(deadline)
     }
-    else Some(completeReceive) // waitToReceive
+    else Some(completeReceive)
   }
 
   /** Wait to receive a value in this channel until at most time deadline.  Pre:
     * the channel is open and there is no sending alt waiting. */
   private def waitToReceiveBy(deadline: Long): Option[A] = {
     val timeout =                   // wait for data until at most deadline (2')
-      !dataAvailable.awaitNanos(deadline-nanoTime, !isEmpty /*length > 0*/ || isClosed)
+      !dataAvailable.awaitNanos(deadline-nanoTime, !isEmpty || isClosed)
     checkOpen
     if(timeout) None
     else Some(completeReceive) // Remove item, signal and return result
@@ -184,18 +170,8 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends BuffChanT[A]{
   require(size > 0, 
     s"BuffChan created with capacity $size: must be strictly positive.")
 
-  /** Is this a one-place buffer?  The implementation is optimised for this
-    * case. */
-  //private val singleton = (size == 1)
-
   /** Array holding the data in the non-singleton case. */
   private val data = /* if(singleton) null else */ new Array[A](size)
-
-  /* The contents of the buffer is data[first .. first+length) (indices
-   * interpreted mod size. */
-
-  /** In the case of singleton, the datum stored, if length == 1. */
-  // private var datum: A = _
 
   /** Index of the first piece of data. */
   private var first = 0
@@ -212,21 +188,14 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends BuffChanT[A]{
   /** Get and remove the first item in the buffer. */
   protected def get(): A = {
     require(length > 0); length -= 1
-    // if(singleton) datum
-    // else{
-        val r = data(first); first = first+1; if(first == size) first = 0; r 
-    //}
+    val r = data(first); first = first+1; if(first == size) first = 0; r
   }
 
   /** Add `x` to the buffer. */
   protected def add(x: A) = {
     require(length < size)
-    // if(singleton) datum = x
-    // else{
-      var index = first+length; if(index >= size) index -= size
-      data(index) = x
-    //}
-    length += 1
+    var index = first+length; if(index >= size) index -= size
+    data(index) = x; length += 1
   }
 
   /** Clear the buffer. */
@@ -238,7 +207,7 @@ class BuffChan[A: scala.reflect.ClassTag](size: Int) extends BuffChanT[A]{
 // =======================================================
 
 /** A buffered channel of size 1. */
-class SingletonBuffChan[A] extends BuffChanT[A]{
+class OnePlaceBuffChan[A] extends BuffChanT[A]{
   /** The contents of the buffer, when `full` is true. */
   private var datum: A = _
 

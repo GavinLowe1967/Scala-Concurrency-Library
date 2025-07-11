@@ -49,7 +49,7 @@ object BuffChanTest{
 
     for(r <- 0 until reps){
       val concChan = 
-        if(size == 1) new SingletonBuffChan[Int] 
+        if(size == 1) new OnePlaceBuffChan[Int] 
         else if(size < 0) new UnboundedBuffChan[Int] else new BuffChan[Int](size)
       val seqChan = Queue[Int]()
       val tester =

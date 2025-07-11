@@ -101,7 +101,7 @@ object SyncChanTest{
       for(_ <- 0 until 100) doTest(chan)
       chan.close(); chan.reopen(); print(".") 
     }
-    println
+    println()
     println("Time taken: "+(System.nanoTime-start)/1_000_000+"ms")
   }
 }

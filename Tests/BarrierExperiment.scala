@@ -25,7 +25,7 @@ object BarrierExperiment{
   /** Worker that synchronises iters times. */
   def worker(id: Int) = thread{
     for(_ <- 0 until iters){
-      if(useLinear) linearBarrier.sync else logBarrier.sync(id)
+      if(useLinear) linearBarrier.sync() else logBarrier.sync(id)
     }
   }
 
@@ -45,7 +45,7 @@ object BarrierExperiment{
       run(system); print(".")
     }
     val duration = (nanoTime-start)/1_000_000
-    println
+    println()
     println(s"$duration ms")
   }
 }

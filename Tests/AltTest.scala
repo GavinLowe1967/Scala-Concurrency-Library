@@ -46,7 +46,7 @@ object AltTest{
   /** Run a single test. */
   def doTest = {
     val l,r = 
-      if(buffering == 1) new SingletonBuffChan[Int] 
+      if(buffering == 1) new OnePlaceBuffChan[Int] 
       else if(buffering > 1) new BuffChan[Int](2)
       else if(buffering < 0) new UnboundedBuffChan[Int]
       else new SyncChan[Int]

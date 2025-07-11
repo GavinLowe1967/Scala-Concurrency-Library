@@ -14,10 +14,10 @@ package object scl{
     new ThreadGroup(List((name, _ => comp)))
 
   /** Run the computation `comp`. */
-  def run(comp: ThreadGroup) = comp.run
+  def run(comp: ThreadGroup) = comp.run()
 
   /** Fork off the computation `comp`. */
-  def fork(comp: ThreadGroup) = comp.fork
+  def fork(comp: ThreadGroup) = comp.fork()
 
   /** Create a parallel computation of the `ThreadGroup`s `comps`. */
   def || (comps: Seq[ThreadGroup]): ThreadGroup = ThreadGroup.||(comps)
@@ -110,7 +110,7 @@ package object scl{
   /** Buffered channels. */
   type BuffChan[A] = channel.BuffChan[A]
   /** One-place buffered channels. */
-  type SingletonBuffChan[A] = channel.SingletonBuffChan[A]
+  type OnePlaceBuffChan[A] = channel.OnePlaceBuffChan[A]
   /** Unbounded buffered channels. */
   type UnboundedBuffChan[A] = channel.UnboundedBuffChan[A]
 

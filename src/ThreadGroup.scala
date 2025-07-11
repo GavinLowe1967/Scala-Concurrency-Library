@@ -47,7 +47,7 @@ class ThreadGroup(private val comps: List[(String, Unit => Unit)]){
     * immediately, and the system halts when the parallel composition
     * terminates.  Otherwise, if any thread throws a Stopped exception, that
     * gets thrown when the parallel composition terminates.  */
-  def run = {
+  def run() = {
     val threads = comps.map{ case (name, comp) => new ThreadObject(name, comp) }
     threads.foreach(_.runWith(threads))
     threads.foreach(_.thread.join)
@@ -83,7 +83,7 @@ class ThreadGroup(private val comps: List[(String, Unit => Unit)]){
 
   /** Fork off a machine thread to execute the threads.  If any thread throws an
     * exception, that halts the program. */
-  def fork = { // comps.foreach(mkThread(_).start)
+  def fork() = { // comps.foreach(mkThread(_).start)
     for((name,comp) <- comps){
       val thread = new java.lang.Thread(new Runnable{ 
         def run = {

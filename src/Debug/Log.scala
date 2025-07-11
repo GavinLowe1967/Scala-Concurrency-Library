@@ -51,7 +51,8 @@ class Log[A: scala.reflect.ClassTag](p: Int, mask: Int = 0xFFFFFFFF)
 
   /** Add x to the log, by thread me, if (mask & bits) == bits. */
   def add(me: Int, x: A, bits: Int = 0) =
-    if((mask & bits) == bits) logs(me) += ((System.nanoTime-startTime, x))
+    if((mask & bits) == bits)
+      logs(me) += ((System.nanoTime-startTime, x))
 
   /** Have sentinels been added to the log yet?  This is necessary to
     * avoid adding them again during the call to toFile. */
@@ -63,6 +64,11 @@ class Log[A: scala.reflect.ClassTag](p: Int, mask: Int = 0xFFFFFFFF)
     val Sentinel = Long.MaxValue
     // Clone logs in case another thread is working on them. 
     val myLogs = Array.tabulate(p)(i => logs(i).clone)
+    // Perform sanity check that timestamps are increasing
+    for(log <- myLogs; i <- 0 until log.length-1)
+      assert(log(i)._1 <= log(i+1)._1,
+        "\nError: ill-formed log.\n"+
+          "This might be because two threads are using the same log identities.")
     if(true || !sentinelsAdded){
       for(log <- myLogs) log += ((Sentinel, null.asInstanceOf[A]))
       sentinelsAdded = true
@@ -81,6 +87,9 @@ class Log[A: scala.reflect.ClassTag](p: Int, mask: Int = 0xFFFFFFFF)
       val (ts, x) = myLogs(minIx)(indices(minIx))
       assert(ts < Sentinel)
       result(next) = x; indices(minIx) += 1
+      // Very defensive checks. 
+      assert(indices(minIx) < myLogs(minIx).length)
+      assert(myLogs(minIx)(indices(minIx)) != null)
     }
 
     result
