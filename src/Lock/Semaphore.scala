@@ -4,12 +4,12 @@ package ox.scl.lock
   * @param isUp is the semaphore initially in the "up" state? */
 class Semaphore(private var isUp: Boolean){
   /** Put the semaphore up.  Unblock a waiting down, if there is one. */
-  def up = synchronized{
+  def up() = synchronized{
     require(!isUp); isUp = true; notify()
   }
 
   /** Wait for the semaphore to be up, and put it down. */
-  def down = synchronized{
+  def down() = synchronized{
     while(!isUp) wait()
     isUp = false
   }

@@ -11,7 +11,7 @@ class Lock{
   private[lock] var locker: Thread = null
 
   /** Acquire the lock. */
-  def acquire = synchronized{
+  def acquire() = synchronized{
     val thisThread = Thread.currentThread
     if(thisThread == locker) locked += 1 // re-entry
     else{
@@ -28,7 +28,7 @@ class Lock{
   }
 
   /** Release the lock. */
-  def release = synchronized{
+  def release() = synchronized{
     assert(locker == Thread.currentThread,
       s"Lock held by $locker but unlocked by ${Thread.currentThread}")
     locked -= 1
@@ -37,7 +37,7 @@ class Lock{
   }
 
   /** Release the lock as many times as it is held; return that number. */
-  private[lock] def releaseAll: Int = synchronized{
+  private[lock] def releaseAll(): Int = synchronized{
     assert(locker == Thread.currentThread,
       s"Lock held by $locker but unlocked by ${Thread.currentThread}")
     val numLocked = locked; locked = 0; locker = null; notify(); numLocked
@@ -45,7 +45,7 @@ class Lock{
 
   /** Execute `comp` under mutual exclusion for this lock. */
   def mutex[A](comp: => A): A = {
-    acquire; try{comp} finally{ if(locker == Thread.currentThread) release }
+    acquire(); try{comp} finally{ if(locker == Thread.currentThread) release() }
     // Note: the check in the finally clause is in case this thread received
     // an interrupt while waiting on a condition, so not holding the lock.
   } 
@@ -82,7 +82,7 @@ class Condition(lock: Lock){
     var wasInterrupted = false
     // record that I'm waiting
     val myInfo = new ThreadInfo; waiters.enqueue(myInfo) 
-    val numLocked = lock.releaseAll                 // release the lock
+    val numLocked = lock.releaseAll()               // release the lock
     while(!myInfo.ready){
       LockSupport.park()                            // wait to be woken
       if(Thread.interrupted){ myInfo.ready = true; wasInterrupted = true }
@@ -106,7 +106,7 @@ class Condition(lock: Lock){
     var wasInterrupted = false
     // record that I'm waiting
     val myInfo = new ThreadInfo; waiters.enqueue(myInfo) 
-    val numLocked = lock.releaseAll                   // release the lock
+    val numLocked = lock.releaseAll()                // release the lock
     var remaining = deadline-nanoTime
     while(!myInfo.ready && remaining > 0){
       LockSupport.parkNanos(remaining)               // wait to be woken
