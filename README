@@ -1,1 +1,14 @@
 A library of concurrency primitives.
+
+src: source code for the library
+
+Examples: example programs
+
+Tests: test programs
+
+Doc: personal documentation describing how alts are implemented, and differences from SCO. 
+
+doc.zip: zip file of Scaladoc documentation.
+
+scl.zip: zip code of SCL class files.  Unpacks to produce "ox" directory. 
+
