@@ -141,6 +141,9 @@ package object scl{
     * properly (e.g. Windows). */
   type SharedLog[A] = debug.SharedLog[A]
 
+  type Closed = channel.Closed
+  type AltAbort = channel.AltAbort
+
   // Linearizability testing
   import ox.cads.testing.LinearizabilityTester.{WorkerType,JITGraph}
   /** Produce a linearizability tester. 
