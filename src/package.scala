@@ -2,7 +2,7 @@ package ox
 
 /** The main SCL package object, making most of the library available.
   * 
-  * Version 1.2. */
+  * Version 1.3. */
 package object scl{
   /* Creating and running ThreadGroups. */
 

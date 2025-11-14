@@ -1,0 +1,25 @@
+        Changes between versions 1.2 and 1.3
+
+The ? and ! type constructors are deprecated.
+
+Allowed the body of "repeat" to give a non-Unit result (which is ignored).
+
+Changes channel operations "close", "endOfStream" and "reopen" so that they
+take an empty argument list, e.g. "close()".
+
+Added trait BuffChanT and classes OnePlaceBuffChan and UnboundedBuffChan.
+
+Updated Log to try to detect if two threads used the same "identities" to
+write to the log.
+
+Changed fork and run on ThreadGroups so they take an empty argument list,
+e.g. "t.fork()"
+
+Changed acquire and release on Locks so they take an empty parameter list.
+
+Changed up and down on semaphores so they take an empty parameter list.
+
+Made the Closed and AltAbort exceptions available without full
+quantification. 
+
+-------------------------------------------------------
